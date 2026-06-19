@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>TD Maker — דף כיול</title>
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: white; font-family: Arial, sans-serif; }
+
+  #printBtn {
+    position: fixed; top: 8px; left: 50%; transform: translateX(-50%);
+    padding: 8px 28px; background: #0D9488; color: white; border: none;
+    border-radius: 6px; font-size: 15px; cursor: pointer; z-index: 99;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  @media print { #printBtn { display: none; } }
+
+  #page {
+    width: 210mm;
+    height: 297mm;
+    position: relative;
+    overflow: hidden;
+    margin: 30px auto 0;
+    background: white;
+  }
+  @media print { #page { margin: 0; } }
+  svg { position: absolute; top: 0; left: 0; width: 210mm; height: 297mm; }
+</style>
+</head>
+<body>
+
+<button id="printBtn" onclick="window.print()">🖨️ הדפס (100% — ללא fit to page)</button>
+
+<div id="page">
+  <svg id="cal" viewBox="0 0 210 297"
+       xmlns="http://www.w3.org/2000/svg">
+  </svg>
+</div>
+
+<script>
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('cal');
+
+function el(tag, attrs, text) {
+  const e = document.createElementNS(SVG_NS, tag);
+  for (const [k,v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function line(x1,y1,x2,y2,sw,color='black') {
+  return svg.appendChild(el('line',{x1,y1,x2,y2,stroke:color,'stroke-width':sw}));
+}
+function rect(x,y,w,h,fill='white',stroke='none',sw=0) {
+  return svg.appendChild(el('rect',{x,y,width:w,height:h,fill,stroke,'stroke-width':sw}));
+}
+function text(x,y,s,sz,anchor='middle',color='black',bold=false) {
+  const t = el('text',{x,y,'font-size':sz,'text-anchor':anchor,fill:color,
+    'font-family':'Arial','font-weight':bold?'bold':'normal'});
+  t.textContent = s;
+  return svg.appendChild(t);
+}
+
+// ── Background ──────────────────────────────────────────────
+rect(0,0,210,297,'white');
+
+// ── Layout constants ────────────────────────────────────────
+const VR_X=5,  VR_Y=20, VR_W=17, VR_H=150;   // סרגל אנכי
+const GR_X=24, GR_Y=20, GR_W=181,GR_H=150;   // רשת
+const HR_X=5,  HR_Y=172,HR_W=200,HR_H=22;     // סרגל אופקי
+
+// ── Title ───────────────────────────────────────────────────
+text(105, 10, 'TD Maker — דף כיול | הדפס ב-100% — ללא הגדלה/הקטנה — הנח מסרגל על הציור לאימות — צלם', 3.6, 'middle','#222',true);
+text(105, 15.5, 'TD Maker Calibration Sheet — 1:1 scale', 3.0, 'middle','#888');
+
+// ── סרגל אופקי (200mm) ─────────────────────────────────────
+rect(HR_X,HR_Y,HR_W,HR_H,'#fafafa','none');
+rect(HR_X,HR_Y,HR_W,0.7,'black');  // פס עליון
+
+for (let mm=0; mm<=200; mm++) {
+  const x = HR_X + mm;
+  let tickH, sw;
+  if      (mm%10===0) { tickH=9.0; sw=0.7;  }
+  else if (mm%5===0)  { tickH=5.5; sw=0.45; }
+  else                { tickH=2.8; sw=0.35; }
+  line(x,HR_Y,x,HR_Y+tickH,sw);
+}
+for (let cm=0; cm<=20; cm++) {
+  text(HR_X+cm*10, HR_Y+14.5, String(cm), 3.5,'middle','#111');
+}
+text(HR_X+100, HR_Y+20, '← 200 מ"מ →', 2.8,'middle','#666');
+
+// ── סרגל אנכי (150mm) ──────────────────────────────────────
+rect(VR_X,VR_Y,VR_W,VR_H,'#fafafa','none');
+rect(VR_X+VR_W-0.7,VR_Y,0.7,VR_H,'black');  // פס ימני
+
+for (let mm=0; mm<=150; mm++) {
+  const y = VR_Y + mm;
+  let tickH, sw;
+  if      (mm%10===0) { tickH=9.0; sw=0.7;  }
+  else if (mm%5===0)  { tickH=5.5; sw=0.45; }
+  else                { tickH=2.8; sw=0.35; }
+  line(VR_X+VR_W-tickH, y, VR_X+VR_W, y, sw);
+}
+for (let cm=0; cm<=15; cm++) {
+  const t = el('text',{
+    x: -(VR_Y+cm*10), y: VR_X+3.5,
+    'font-size':3.5,'text-anchor':'middle',fill:'#111',
+    'font-family':'Arial',transform:'rotate(-90)'
+  });
+  t.textContent = String(cm);
+  svg.appendChild(t);
+}
+{
+  const t = el('text',{
+    x: -(VR_Y+75), y: VR_X+1,
+    'font-size':2.8,'text-anchor':'middle',fill:'#666',
+    'font-family':'Arial',transform:'rotate(-90)'
+  });
+  t.textContent = '← 150 מ"מ →';
+  svg.appendChild(t);
+}
+
+// ── רשת (10×10mm) ───────────────────────────────────────────
+for (let row=0; row<15; row++) {
+  for (let col=0; col<18; col++) {
+    if ((row+col)%2===0)
+      rect(GR_X+col*10, GR_Y+row*10, 10,10,'#ebebeb');
+  }
+}
+for (let mm=0; mm<=GR_W; mm++) {
+  const x=GR_X+mm, isCell=mm%10===0, is5=mm%5===0;
+  line(x,GR_Y,x,GR_Y+GR_H, isCell?0.35:is5?0.2:0.12, isCell?'#999':'#ccc');
+}
+for (let mm=0; mm<=GR_H; mm++) {
+  const y=GR_Y+mm, isCell=mm%10===0, is5=mm%5===0;
+  line(GR_X,y,GR_X+GR_W,y, isCell?0.35:is5?0.2:0.12, isCell?'#999':'#ccc');
+}
+rect(GR_X,GR_Y,GR_W,GR_H,'none','#555',0.5);
+
+text(GR_X+GR_W/2, GR_Y+GR_H/2-3, 'ריבועים רשת',     5, 'middle','rgba(0,0,0,0.07)');
+text(GR_X+GR_W/2, GR_Y+GR_H/2+5, '10 × 10 מ"מ', 4.5, 'middle','rgba(0,0,0,0.07)');
+
+// נקודות כיול בפינות ומרכז
+function regMark(cx,cy,r=3) {
+  svg.appendChild(el('circle',{cx,cy,r:r*0.25,fill:'black'}));
+  line(cx-r,cy,cx+r,cy,0.3,'black');
+  line(cx,cy-r,cx,cy+r,0.3,'black');
+}
+regMark(GR_X,          GR_Y);
+regMark(GR_X+GR_W,     GR_Y);
+regMark(GR_X,          GR_Y+GR_H);
+regMark(GR_X+GR_W,     GR_Y+GR_H);
+regMark(GR_X+GR_W/2,   GR_Y+GR_H/2);
+
+// ── פינת חיתוך סרגלים ──────────────────────────────────────
+rect(VR_X,HR_Y,VR_W,HR_H,'#e0e0e0','#999',0.3);
+regMark(VR_X+VR_W/2, HR_Y+HR_H/2, 4);
+
+// ── הוראות שימוש ────────────────────────────────────────────
+text(105,200,'① הדפס ב-100% ללא הגדלה  |  ② הנח האובייקט על הרשת עם סרגל לצידו  |  ③ צלם ישר מלמעלה  |  ④ העלה לאפליקציה',3.2,'middle','#333');
+text(105,206,'בכיול: העלה תמונה ← לחץ "קנה מידה" ← לחץ על 2 נקודות ידועות על הסרגל ← הכנס מרחק ב-מ"מ ← לחץ "הוסף מדידה"',3.0,'middle','#666');
+
+// ── ריבוע בדיקת קנה מידה 20×20mm ───────────────────────────
+const VBX=155, VBY=215;
+rect(VBX,VBY,20,20,'white','black',0.4);
+rect(VBX,VBY,10,10,'black');
+rect(VBX+10,VBY+10,10,10,'black');
+text(VBX+10,VBY+27,'ריבוע 20×20 מ"מ',2.8,'middle','#444');
+text(VBX+10,VBY+31,'לאימות קנה מידה',2.5,'middle','#888');
+
+// ── פס בדיקת 100mm ──────────────────────────────────────────
+const BCX=20, BCY=215;
+rect(BCX,BCY,100,5,'white','black',0.4);
+for (let i=0;i<10;i++) {
+  if (i%2===0) rect(BCX+i*10,BCY,10,5,'black');
+}
+text(BCX+50,BCY+9.5,'← 100 מ"מ → (מחוון קנה מידה)',2.8,'middle','#444');
+
+// ── מסגרת כותרת תחתונה ─────────────────────────────────────
+rect(5,235,200,55,'none','#ccc',0.3);
+
+// שדות טופס
+text(10,242,'שם החלק:',3,'start','#555');
+line(38,242,120,242,0.4,'#bbb');
+text(130,242,'תאריך:',3,'start','#555');
+line(150,242,200,242,0.4,'#bbb');
+
+text(10,252,'חומר:',3,'start','#555');
+line(28,252,120,252,0.4,'#bbb');
+text(130,252,'קנה מידה:',3,'start','#555');
+line(154,252,200,252,0.4,'#bbb');
+
+text(10,262,'הערות:',3,'start','#555');
+line(31,262,200,262,0.4,'#bbb');
+
+text(105,285,'TD Maker • tdmaker.app • סרטוט טכני אוטומטי מתמונות',2.8,'middle','#aaa');
+
+</script>
+</body>
+</html>
