@@ -1265,7 +1265,9 @@ function initScale() {
       if (img !== scImg) return;
       const maxW = Math.max(par.offsetWidth  - 2, 200);
       const maxH = Math.max(par.offsetHeight - 2, 200);
-      const r = Math.min(maxW / img.width, maxH / img.height, 1);
+      // Fit image to fill the available area — allow upscaling small photos
+      // so they aren't shown tiny inside a large (or floating) window.
+      const r = Math.min(maxW / img.width, maxH / img.height);
       scC.width  = Math.round(img.width  * r);
       scC.height = Math.round(img.height * r);
       drawScale();
@@ -1768,8 +1770,8 @@ function toggleFloatScaleCanvas() {
 
   const win = document.createElement('div');
   win.id = 'scale-float-win';
-  const iw = saved.w || Math.min(window.innerWidth  * 0.65, 860);
-  const ih = saved.h || Math.min(window.innerHeight * 0.70, 640);
+  const iw = saved.w || Math.min(window.innerWidth  * 0.82, 1200);
+  const ih = saved.h || Math.min(window.innerHeight * 0.85, 900);
   const il = saved.x ?? Math.max(0, (window.innerWidth  - iw) / 2);
   const it = saved.y ?? Math.max(40, (window.innerHeight - ih) / 2);
   win.style.cssText = `
