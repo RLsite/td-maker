@@ -24,6 +24,7 @@
 | SAM / SAM2 | Meta, קוד פתוח | לחץ על האובייקט → מתאר |
 | Segment Anything | ONNX / מקומי | ניתן להריץ על CPU |
 
+
 ---
 
 ## 3. סיווג כיוון הצילום (View Classification)
@@ -31,6 +32,8 @@
 
 | כלי | שיטה | הערות |
 |-----|------|-------|
+| Qwen2-VL (מקומי) | VLM | "מאיזה כיוון צולמה תמונה זו?" |
+| CLIP | OpenAI, קוד פתוח | embedding → מיון לפי כיוון |
 | ResNet / EfficientNet | Classifier | דורש אימון על דוגמאות |
 | Aspect ratio heuristic | חישובי | יחס W:H → השערת כיוון |
 
@@ -56,6 +59,7 @@
 | Homography + ruler | OpenCV | scale ידוע → מרחקים |
 | DUSt3R / MASt3R | Neural, קוד פתוח | scale metric מ-2 תמונות |
 | Depth Anything v2 | ByteDance, קוד פתוח | עומק יחסי |
+| Qwen2-VL + ruler | VLM | הסקה סמנטית |
 
 ---
 
@@ -68,6 +72,20 @@
 | SuperPoint + SuperGlue | Neural | מדויק מאד |
 | LOFTR | Transformer | ללא keypoints מפורשים |
 | DUSt3R | קוד פתוח | pose + matching ביחד |
+
+---
+
+## 7. VLM מקומי (בשימוש אצלנו)
+
+| מודל | גודל | שרת |
+|------|------|-----|
+| **Qwen2-VL-2B-Instruct** | 2B | localhost:1234 |
+
+**שאלות שניתן לשאול:**
+- "מאיזה כיוון צולמה התמונה?"
+- "כמה ס״מ רחב האובייקט לפי הסרגל?"
+- "האם המתאר מקיף את האובייקט כראוי?"
+- "האם זה מבט פנים, צד או על?"
 
 ---
 

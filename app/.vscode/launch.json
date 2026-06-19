@@ -2,7 +2,8 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "command": "./node_modules/.bin/astro dev",
+      "command": "npm run dev",
+      "cwd": "${workspaceFolder}",
       "name": "Development server",
       "request": "launch",
       "type": "node-terminal"

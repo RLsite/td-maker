@@ -23,3 +23,42 @@ input[type=range] { accent-color: var(--teal); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+/* ── Sidebar transition ── */
+#sidebar {
+  transition: width 0.22s ease, padding 0.22s ease;
+}
+
+/* ── Canvas wrappers fill flex column ── */
+#contour-canvas-wrap,
+#scale-canvas-wrap {
+  contain: layout;
+}
+
+/* ── Responsive: hide step label and calibration button on narrow screens ── */
+@media (max-width: 680px) {
+  .header-step-label { display: none !important; }
+  .hdr-btn { display: none !important; }
+  #progress-bar-wrap { display: none !important; }
+}
+
+/* ── Responsive: sidebar starts collapsed on narrow viewports ── */
+@media (max-width: 900px) {
+  #sidebar {
+    width: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* ── Step 1: upload grid responsive ── */
+@media (max-width: 640px) {
+  .upload-grid-3 { grid-template-columns: 1fr !important; }
+}
+@media (min-width: 641px) and (max-width: 900px) {
+  .upload-grid-3 { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ── Export grid responsive ── */
+@media (max-width: 700px) {
+  .export-grid-4 { grid-template-columns: 1fr 1fr !important; }
+}

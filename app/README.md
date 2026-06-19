@@ -1,43 +1,35 @@
-# Astro Starter Kit: Minimal
+# TD Maker
+
+Web app for converting 3 photos (front / side / top) into a technical drawing with dimensions.
+
+## Setup
 
 ```sh
-npm create astro@latest -- --template minimal
+cd app
+npm install
+npm run dev
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Open [http://localhost:4321](http://localhost:4321).
 
-## 🚀 Project Structure
+From the repo root you can also run `start.bat` (Windows).
 
-Inside of your Astro project, you'll see the following folders and files:
+## Workflow
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+1. Upload 3 photos with a ruler
+2. Background separation
+3. Contour drawing
+4. Scale (px/mm)
+5. Contour review
+6. 3D reconstruction (Visual Hull)
+7. Vectorization
+8. Dimension lines
+9. Drawing layout
+10. Export (DXF / SVG / PDF / PNG)
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Calibration sheet: `/calibration.html` or **Calibrate** in the header.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+## Docs
 
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- `../photo-to-td-pipeline.md` — pipeline stages
+- `../image-recognition-tools.md` — CV/AI tool notes

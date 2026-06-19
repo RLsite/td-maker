@@ -1,4 +1,4 @@
----
+﻿---
 import Layout from '../layouts/Layout.astro';
 import '../styles/global.css';
 ---
@@ -7,24 +7,29 @@ import '../styles/global.css';
 <div id="app" style="height:100vh;display:flex;flex-direction:column;overflow:hidden;">
 
   <!-- ══════════════ HEADER ══════════════ -->
-  <header style="height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.5">
+  <header style="height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;">
+    <button id="sidebar-toggle" onclick="toggleSidebar()" title="Show/Hide Menu" style="width:32px;height:32px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.5" style="flex-shrink:0;">
       <rect x="3" y="3" width="18" height="18" rx="2"/>
       <line x1="3" y1="9" x2="21" y2="9"/>
       <line x1="9" y1="3" x2="9" y2="21"/>
     </svg>
-    <span style="font-family:'Fira Code',monospace;font-weight:700;font-size:18px;color:var(--teal-light);">TD Maker</span>
-    <div style="flex:1;"></div>
-    <span id="step-label" style="font-size:13px;color:var(--muted);">שלב 1 מתוך 10</span>
-    <div style="width:120px;height:5px;background:var(--border);border-radius:999px;overflow:hidden;">
+    <span style="font-family:'Fira Code',monospace;font-weight:700;font-size:16px;color:var(--teal-light);white-space:nowrap;">TD Maker</span>
+    <div style="flex:1;min-width:0;"></div>
+    <button onclick="prevStep()" id="hdr-prev" title="Previous step" style="width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;line-height:1;">‹</button>
+    <span id="step-label" class="header-step-label" style="font-size:12px;color:var(--muted);white-space:nowrap;">Step 1 of 10</span>
+    <div id="progress-bar-wrap" style="width:100px;height:5px;background:var(--border);border-radius:999px;overflow:hidden;flex-shrink:0;">
       <div id="progress-bar" style="height:100%;width:10%;background:var(--teal);border-radius:999px;transition:width 0.35s;"></div>
     </div>
-    <button onclick="printCalibration()" title="הדפס דף כיול" style="font-size:13px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;display:flex;align-items:center;gap:6px;">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-      כיול
+    <button onclick="nextStep()" id="hdr-next" title="Next step" style="width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;line-height:1;">›</button>
+    <button onclick="printCalibration()" title="Print Calibration Sheet" class="hdr-btn" style="font-size:12px;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Calibrate
     </button>
-    <button onclick="newProject()" style="font-size:13px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;">+ חדש</button>
-    <button onclick="saveProject()" style="font-size:13px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;">שמור</button>
+    <button onclick="newProject()" class="hdr-btn" style="font-size:12px;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;white-space:nowrap;">+ New</button>
+    <button onclick="saveProject()" class="hdr-btn" style="font-size:12px;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;white-space:nowrap;">Save</button>
   </header>
 
   <!-- ══════════════ CAMERA MODAL ══════════════ -->
@@ -32,20 +37,20 @@ import '../styles/global.css';
     <video id="camera-video" autoplay playsinline style="display:none;"></video>
     <canvas id="camera-canvas" style="border-radius:12px;background:#000;max-width:90vw;max-height:65vh;"></canvas>
     <div style="display:flex;gap:12px;align-items:center;">
-      <button onclick="rotateCamera()" title="סובב 90°" style="padding:10px 18px;border-radius:10px;background:var(--surface);color:var(--subtle);font-size:22px;border:1px solid var(--border);cursor:pointer;line-height:1;">↻</button>
-      <button onclick="capturePhoto()" style="padding:12px 32px;border-radius:10px;background:var(--teal);color:white;font-size:15px;font-weight:700;border:none;cursor:pointer;">צלם</button>
-      <button onclick="closeCamera()" style="padding:12px 24px;border-radius:10px;background:var(--surface);color:var(--subtle);font-size:14px;border:1px solid var(--border);cursor:pointer;">ביטול</button>
+      <button onclick="rotateCamera()" title="Rotate 90°" style="padding:10px 18px;border-radius:10px;background:var(--surface);color:var(--subtle);font-size:22px;border:1px solid var(--border);cursor:pointer;line-height:1;">↻</button>
+      <button onclick="capturePhoto()" style="padding:12px 32px;border-radius:10px;background:var(--teal);color:white;font-size:15px;font-weight:700;border:none;cursor:pointer;">Capture</button>
+      <button onclick="closeCamera()" style="padding:12px 24px;border-radius:10px;background:var(--surface);color:var(--subtle);font-size:14px;border:1px solid var(--border);cursor:pointer;">Cancel</button>
     </div>
   </div>
 
   <!-- ══════════════ CROP MODAL ══════════════ -->
   <div id="crop-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
-    <div style="font-size:12px;color:var(--muted);">גרור להזזה • פינות לשינוי גודל • לחץ מחוץ לאזור לחיתוך חדש</div>
+    <div style="font-size:12px;color:var(--muted);">Drag to move • Corners to resize • Click outside area for new crop</div>
     <canvas id="crop-canvas" style="border-radius:8px;cursor:crosshair;max-width:92vw;max-height:72vh;display:block;"></canvas>
     <div style="display:flex;gap:10px;align-items:center;">
-      <button onclick="applyCrop()" style="padding:10px 28px;border-radius:10px;background:var(--teal);color:white;font-size:14px;font-weight:700;border:none;cursor:pointer;">חתוך ✓</button>
-      <button onclick="resetCropRect()" style="padding:10px 18px;border-radius:10px;background:var(--surface);color:var(--subtle);font-size:13px;border:1px solid var(--border);cursor:pointer;">איפוס</button>
-      <button onclick="closeCrop()" style="padding:10px 18px;border-radius:10px;background:var(--surface);color:var(--subtle);font-size:13px;border:1px solid var(--border);cursor:pointer;">ביטול</button>
+      <button onclick="applyCrop()" style="padding:10px 28px;border-radius:10px;background:var(--teal);color:white;font-size:14px;font-weight:700;border:none;cursor:pointer;">Crop ✓</button>
+      <button onclick="resetCropRect()" style="padding:10px 18px;border-radius:10px;background:var(--surface);color:var(--subtle);font-size:13px;border:1px solid var(--border);cursor:pointer;">Reset</button>
+      <button onclick="closeCrop()" style="padding:10px 18px;border-radius:10px;background:var(--surface);color:var(--subtle);font-size:13px;border:1px solid var(--border);cursor:pointer;">Cancel</button>
     </div>
   </div>
 
@@ -53,18 +58,18 @@ import '../styles/global.css';
   <div style="display:flex;flex:1;overflow:hidden;">
 
     <!-- ── SIDEBAR ── -->
-    <aside id="sidebar" style="width:228px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;padding:10px;"></aside>
+    <aside id="sidebar" style="width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;padding:10px;transition:width 0.22s ease,padding 0.22s ease;"></aside>
 
     <!-- ── MAIN ── -->
-    <main id="main" style="flex:1;overflow-y:auto;">
+    <main id="main" style="flex:1;overflow-y:auto;min-width:0;">
 
       <!-- ─── STEP 1: Upload ─── -->
       <section class="panel" data-panel="1" style="padding:40px;display:none;">
-        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">העלאת תמונות</h2>
-        <p style="color:var(--muted);margin:0 0 28px;font-size:14px;">העלה 3 צילומים — פנים, צד, על. הנח סרגל בכל תמונה.</p>
+        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">Upload Images</h2>
+        <p style="color:var(--muted);margin:0 0 28px;font-size:14px;">Upload 3 photos — front, side, top. Place a ruler in each image.</p>
 
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:24px;">
-          {[['front','פנים'],['side','צד'],['top','על']].map(([v,label]) => (
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:24px;" class="upload-grid-3">
+          {[['front','Front'],['side','Side'],['top','Top']].map(([v,label]) => (
             <div>
               <div style="font-size:11px;font-weight:700;letter-spacing:.07em;color:var(--subtle);margin-bottom:8px;text-transform:uppercase;">{label}</div>
               <div class="upload-zone" data-view={v} onclick={`triggerUpload('${v}')`}
@@ -73,21 +78,21 @@ import '../styles/global.css';
                 <button id={`delete-${v}`} onclick={`event.stopPropagation();deleteImg('${v}')`}
                   style="display:none;position:absolute;top:6px;right:6px;z-index:10;width:26px;height:26px;border-radius:50%;border:none;background:rgba(239,68,68,.85);color:white;font-size:15px;line-height:1;cursor:pointer;align-items:center;justify-content:center;">✕</button>
                 <button id={`crop-${v}`} onclick={`event.stopPropagation();openCrop('${v}')`}
-                  style="display:none;position:absolute;top:6px;left:6px;z-index:10;padding:3px 9px;border-radius:6px;border:none;background:rgba(13,148,136,.88);color:white;font-size:11px;font-weight:700;cursor:pointer;">חתוך</button>
+                  style="display:none;position:absolute;top:6px;left:6px;z-index:10;padding:3px 9px;border-radius:6px;border:none;background:rgba(13,148,136,.88);color:white;font-size:11px;font-weight:700;cursor:pointer;">Crop</button>
                 <div id={`placeholder-${v}`} style="display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--border);pointer-events:none;">
                   <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                   </svg>
-                  <span style="font-size:13px;">לחץ להעלאה</span>
+                  <span style="font-size:13px;">Click to upload</span>
                 </div>
               </div>
               <div style="display:flex;gap:6px;margin-top:7px;">
                 <input type="file" id={`input-${v}`} accept="image/*" style="display:none" onchange={`handleUpload(event,'${v}')`} />
-                <button onclick={`triggerUpload('${v}')`} style="flex:1;padding:5px 0;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">קובץ</button>
+                <button onclick={`triggerUpload('${v}')`} style="flex:1;padding:5px 0;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">File</button>
                 <button onclick={`openCamera('${v}')`} style="flex:1;padding:5px 0;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                  מצלמה
+                  Camera
                 </button>
               </div>
             </div>
@@ -100,23 +105,23 @@ import '../styles/global.css';
             style="width:130px;height:90px;border:2px dashed var(--border);border-radius:10px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;background:var(--bg);">
             <img id="preview-iso" style="display:none;width:100%;height:100%;object-fit:contain;position:absolute;inset:0;" />
             <button id="crop-iso" onclick="event.stopPropagation();openCrop('iso')"
-              style="display:none;position:absolute;top:4px;left:4px;z-index:10;padding:2px 7px;border-radius:5px;border:none;background:rgba(13,148,136,.88);color:white;font-size:10px;font-weight:700;cursor:pointer;">חתוך</button>
+              style="display:none;position:absolute;top:4px;left:4px;z-index:10;padding:2px 7px;border-radius:5px;border:none;background:rgba(13,148,136,.88);color:white;font-size:10px;font-weight:700;cursor:pointer;">Crop</button>
             <div id="placeholder-iso" style="display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--border);pointer-events:none;">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
               </svg>
-              <span style="font-size:11px;">העלה</span>
+              <span style="font-size:11px;">Upload</span>
             </div>
           </div>
           <input type="file" id="input-iso" accept="image/*" style="display:none" onchange="handleUpload(event,'iso')" />
           <div>
-            <div style="font-size:12px;font-weight:700;color:var(--teal-light);margin-bottom:4px;">תמונה איזומטרית <span style="font-weight:400;color:var(--muted);font-size:11px;">(אופציונלי)</span></div>
-            <div style="font-size:12px;color:var(--muted);line-height:1.6;">תמונה שמראה כמה מבטים — פנים + צד + על בבת אחת.<br/>מגדילה את דיוק השחזור התלת-מימדי.</div>
+            <div style="font-size:12px;font-weight:700;color:var(--teal-light);margin-bottom:4px;">Isometric Image <span style="font-weight:400;color:var(--muted);font-size:11px;">(optional)</span></div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;">An image showing multiple views — front + side + top at once.<br/>Improves 3D reconstruction accuracy.</div>
             <div style="display:flex;gap:6px;margin-top:8px;">
-              <button onclick="triggerUpload('iso')" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:11px;cursor:pointer;">קובץ</button>
+              <button onclick="triggerUpload('iso')" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:11px;cursor:pointer;">File</button>
               <button onclick="openCamera('iso')" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                מצלמה
+                Camera
               </button>
             </div>
           </div>
@@ -125,59 +130,73 @@ import '../styles/global.css';
         <div id="upload-status" style="font-size:13px;color:var(--muted);min-height:20px;margin-bottom:16px;"></div>
         <div style="display:flex;justify-content:flex-end;">
           <button id="step1-next" onclick="nextStep()" disabled
-            style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--border);color:var(--muted);cursor:not-allowed;transition:all .2s;">המשך →</button>
+            style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--border);color:var(--muted);cursor:not-allowed;transition:all .2s;">Continue →</button>
         </div>
       </section>
 
       <!-- ─── STEP 4: Scale ─── -->
-      <section class="panel" data-panel="4" style="padding:40px;display:none;">
-        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">קנה מידה</h2>
-        <p style="color:var(--muted);margin:0 0 16px;font-size:14px;">לחץ על שתי נקודות, הכנס מרחק ב-מ"מ ולחץ <strong style="color:var(--text);">הוסף מדידה</strong>. הוסף כמה מדידות שתרצה לדיוק מרבי.</p>
+      <section class="panel" data-panel="4" style="padding:12px 20px;display:none;height:100%;box-sizing:border-box;overflow:hidden;flex-direction:column;">
 
-        <div style="display:flex;gap:8px;margin-bottom:14px;">
-          {[['front','פנים'],['side','צד'],['top','על']].map(([v,label]) => (
-            <button class="scale-tab" data-v={v} onclick={`setScaleView('${v}')`}
-              style="padding:6px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:13px;cursor:pointer;">{label}</button>
-          ))}
+        <!-- Header row -->
+        <div style="flex-shrink:0;">
+          <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:4px;">
+            <h2 style="font-size:18px;font-weight:700;margin:0;">Scale</h2>
+            <p style="color:var(--muted);margin:0;font-size:12px;">Click two points on ruler, enter mm, click <strong style="color:var(--text);">Add Measurement</strong>.</p>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+            {[['front','Front'],['side','Side'],['top','Top']].map(([v,label]) => (
+              <button class="scale-tab" data-v={v} onclick={`setScaleView('${v}')`}
+                style="padding:6px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:13px;cursor:pointer;">{label}</button>
+            ))}
+            <button onclick="autoDetectScale()" style="padding:5px 14px;border-radius:8px;background:rgba(13,148,136,.12);border:1px solid var(--teal);color:var(--teal-light);font-size:12px;font-weight:600;cursor:pointer;">🔍 Auto Detect</button>
+            <span id="ruler-detect-info" style="font-size:11px;color:var(--muted);flex:1;"></span>
+            <button id="scale-float-btn" onclick="toggleFloatScaleCanvas()" title="Float image window"
+              style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
+              </svg>Window
+            </button>
+          </div>
         </div>
 
-        <!-- Auto ruler detect bar -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;background:rgba(13,148,136,.06);border:1px solid rgba(13,148,136,.22);border-radius:10px;padding:9px 14px;">
-          <button onclick="autoDetectScale()" style="padding:6px 16px;border-radius:8px;background:rgba(13,148,136,.15);border:1px solid var(--teal);color:var(--teal-light);font-size:13px;font-weight:600;cursor:pointer;">🔍 זיהוי סרגל אוטומטי</button>
-          <span id="ruler-detect-info" style="font-size:12px;color:var(--muted);">מזהה סרגל בתמונה — ללא לחיצות</span>
-        </div>
+        <!-- Main area: canvas left, measurements right -->
+        <div style="display:grid;grid-template-columns:1fr 300px;gap:14px;flex:1;min-height:0;align-items:stretch;">
 
-        <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start;">
-
-          <!-- Left: canvas + controls -->
-          <div>
-            <div style="background:var(--bg);border-radius:12px;overflow:hidden;margin-bottom:12px;display:flex;justify-content:center;align-items:center;min-height:180px;">
-              <canvas id="scale-canvas" style="max-width:100%;cursor:crosshair;"></canvas>
+          <!-- Left: canvas fills remaining height -->
+          <div style="display:flex;flex-direction:column;min-height:0;">
+            <div id="scale-canvas-wrap" style="flex:1;min-height:0;background:var(--bg);border-radius:12px;overflow:hidden;display:flex;justify-content:center;align-items:center;">
+              <canvas id="scale-canvas" style="cursor:crosshair;"></canvas>
             </div>
-
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-              <span id="scale-pts-info" style="font-size:12px;color:var(--muted);font-family:'Fira Code',monospace;flex:1;">לחץ על נקודה 1 על הסרגל</span>
-              <input id="mm-input" type="number" min="0.1" step="0.1" placeholder="מ״מ"
-                style="width:76px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;font-family:'Fira Code',monospace;text-align:center;" />
-              <span style="font-size:12px;color:var(--muted);">מ"מ</span>
-              <button onclick="addMeasurement()" style="padding:7px 16px;border-radius:8px;background:var(--teal);color:white;border:none;font-size:13px;font-weight:600;cursor:pointer;">+ הוסף מדידה</button>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;flex-shrink:0;">
+              <span id="scale-pts-info" style="font-size:12px;color:var(--muted);font-family:'Fira Code',monospace;flex:1;">Click point 1 on the ruler</span>
+              <span style="font-size:11px;color:var(--muted);">Zoom:</span>
+              <button onclick="scaleZoomBy(1.3)" style="width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+              <button onclick="scaleZoomBy(0.77)" style="width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+              <button onclick="resetScaleZoom()" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">⊙</button>
+              <span id="scale-zoom-pct" style="font-family:'Fira Code',monospace;font-size:11px;color:var(--muted);width:36px;">100%</span>
+              <span style="width:1px;height:16px;background:var(--border);flex-shrink:0;"></span>
+              <input id="mm-input" type="number" min="0.1" step="0.1" placeholder="mm"
+                style="width:72px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;font-family:'Fira Code',monospace;text-align:center;" />
+              <span style="font-size:12px;color:var(--muted);">mm</span>
+              <button onclick="addMeasurement()" style="padding:6px 14px;border-radius:8px;background:var(--teal);color:white;border:none;font-size:13px;font-weight:600;cursor:pointer;">+ Add</button>
             </div>
           </div>
 
-          <!-- Right: measurements list per view -->
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-              <span style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;">מדידות</span>
+          <!-- Right: measurements panel, scrollable -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;overflow-y:auto;display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;">
+              <span style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;">Measurements</span>
               <span id="meas-view-label" style="font-size:12px;color:var(--teal-light);font-weight:600;"></span>
             </div>
 
-            <div id="meas-list" style="min-height:80px;margin-bottom:12px;">
-              <div style="font-size:12px;color:var(--border);text-align:center;padding:20px 0;">אין מדידות עדיין</div>
+            <div id="meas-list" style="flex:1;min-height:60px;margin-bottom:10px;">
+              <div style="font-size:12px;color:var(--border);text-align:center;padding:20px 0;">No measurements yet</div>
             </div>
 
-            <div style="border-top:1px solid var(--border);padding-top:10px;">
+            <div style="border-top:1px solid var(--border);padding-top:10px;flex-shrink:0;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;color:var(--muted);">ממוצע:</span>
+                <span style="font-size:12px;color:var(--muted);">Average:</span>
                 <div style="text-align:left;">
                   <span id="scale-avg" style="font-size:20px;font-weight:700;font-family:'Fira Code',monospace;color:var(--subtle);">—</span>
                   <span style="font-size:11px;color:var(--muted);margin-right:4px;"> px/mm</span>
@@ -186,8 +205,8 @@ import '../styles/global.css';
             </div>
 
             <!-- Summary: all 3 views -->
-            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
-              {[['front','פנים'],['side','צד'],['top','על']].map(([v,label]) => (
+            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex-shrink:0;">
+              {[['front','Front'],['side','Side'],['top','Top']].map(([v,label]) => (
                 <div style="text-align:center;">
                   <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">{label}</div>
                   <div id={`scale-${v}`} style="font-size:13px;font-weight:700;font-family:'Fira Code',monospace;color:var(--subtle);">—</div>
@@ -198,21 +217,21 @@ import '../styles/global.css';
 
         </div>
 
-        <div style="display:flex;justify-content:space-between;margin-top:24px;">
-          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← חזור</button>
+        <div style="display:flex;justify-content:space-between;flex-shrink:0;margin-top:10px;">
+          <button onclick="prevStep()" style="padding:8px 20px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← Back</button>
           <button id="step4-next" onclick="nextStep()" disabled
-            style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--border);color:var(--muted);cursor:not-allowed;transition:all .2s;">המשך →</button>
+            style="padding:8px 24px;border-radius:10px;font-size:13px;font-weight:600;border:none;background:var(--border);color:var(--muted);cursor:not-allowed;transition:all .2s;">Continue →</button>
         </div>
       </section>
 
       <!-- ─── STEP 3: Contour (was 4) moved before scale ─── -->
       <!-- ─── STEP 2: Segmentation ─── -->
       <section class="panel" data-panel="2" style="padding:40px;display:none;">
-        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">הפרדת רקע</h2>
-        <p style="color:var(--muted);margin:0 0 20px;font-size:14px;">כוון את הסף כדי לקבל מסכת סילואט נקייה של האובייקט.</p>
+        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">Background Separation</h2>
+        <p style="color:var(--muted);margin:0 0 20px;font-size:14px;">Adjust the threshold to get a clean silhouette mask of the object.</p>
 
         <div style="display:flex;gap:8px;margin-bottom:16px;">
-          {[['front','פנים'],['side','צד'],['top','על']].map(([v,label]) => (
+          {[['front','Front'],['side','Side'],['top','Top']].map(([v,label]) => (
             <button class="seg-tab" data-v={v} onclick={`setSegView('${v}')`}
               style="padding:6px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:13px;cursor:pointer;">{label}</button>
           ))}
@@ -220,53 +239,55 @@ import '../styles/global.css';
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
           <div style="position:relative;">
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">מקור</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Source</div>
             <canvas id="seg-src" style="width:100%;border-radius:8px;cursor:crosshair;"></canvas>
             <!-- calibration corner overlay -->
             <canvas id="seg-cal-overlay" style="position:absolute;top:22px;left:0;width:100%;height:calc(100% - 22px);border-radius:8px;pointer-events:none;"></canvas>
           </div>
           <div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">סילואט</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Silhouette</div>
             <canvas id="seg-out" style="width:100%;border-radius:8px;"></canvas>
           </div>
         </div>
         <!-- calibration background status bar -->
-        <div id="cal-bg-bar" style="display:none;background:rgba(124,58,237,.12);border:1px solid #7C3AED;border-radius:8px;padding:7px 12px;margin-bottom:8px;font-size:12px;color:#A78BFA;display:flex;align-items:center;gap:8px;">
+        <div id="cal-bg-bar" style="display:none;align-items:center;gap:8px;background:rgba(124,58,237,.12);border:1px solid #7C3AED;border-radius:8px;padding:7px 12px;margin-bottom:8px;font-size:12px;color:#A78BFA;">
           <span>📐</span>
-          <span id="cal-bg-msg">לחץ על 4 פינות הרשת בתמונה (UL → UR → DR → DL)</span>
-          <button onclick="calBgCancel()" style="margin-right:auto;padding:2px 8px;border-radius:5px;border:1px solid #7C3AED;background:transparent;color:#A78BFA;font-size:11px;cursor:pointer;">ביטול</button>
+          <span id="cal-bg-msg">Click the 4 grid corners in the image (UL → UR → DR → DL)</span>
+          <button onclick="calBgCancel()" style="margin-right:auto;padding:2px 8px;border-radius:5px;border:1px solid #7C3AED;background:transparent;color:#A78BFA;font-size:11px;cursor:pointer;">Cancel</button>
         </div>
 
         <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
-          <button onclick="segAutoOtsu()" style="padding:5px 12px;border-radius:8px;border:1px solid var(--teal);background:rgba(13,148,136,.1);color:var(--teal-light);font-size:12px;cursor:pointer;font-weight:600;">✦ Otsu אוטו</button>
-          <button onclick="setSegMode('dark')" id="seg-mode-dark" style="padding:5px 12px;border-radius:8px;border:1px solid var(--teal);background:rgba(13,148,136,.15);color:var(--teal-light);font-size:12px;cursor:pointer;">● אובייקט כהה</button>
-          <button onclick="setSegMode('light')" id="seg-mode-light" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">○ אובייקט בהיר</button>
-          <button onclick="segMorphClean()" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">⬜ נקה רעש</button>
+          <button onclick="segAutoOtsu()" style="padding:5px 12px;border-radius:8px;border:1px solid var(--teal);background:rgba(13,148,136,.1);color:var(--teal-light);font-size:12px;cursor:pointer;font-weight:600;">✦ Otsu Auto</button>
+          <button onclick="setSegMode('dark')" id="seg-mode-dark" style="padding:5px 12px;border-radius:8px;border:1px solid var(--teal);background:rgba(13,148,136,.15);color:var(--teal-light);font-size:12px;cursor:pointer;">● Dark Object</button>
+          <button onclick="setSegMode('light')" id="seg-mode-light" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">○ Light Object</button>
+          <button onclick="segMorphClean()" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">⬜ Clean Noise</button>
           <button onclick="gmmSegment()" title="GMM Color Segmentation — GrabCut simplified (Rother 2004)" style="padding:5px 12px;border-radius:8px;border:1px solid #7C3AED;background:rgba(124,58,237,.1);color:#A78BFA;font-size:12px;cursor:pointer;font-weight:600;">🧩 GMM</button>
-          <button onclick="startCalBgMode()" title="חיסור רקע דף כיול — לחץ 4 פינות הרשת" style="padding:5px 12px;border-radius:8px;border:1px solid #F59E0B;background:rgba(245,158,11,.1);color:#FCD34D;font-size:12px;cursor:pointer;font-weight:600;">📐 כיול רקע</button>
-          <button id="seg-save-btn" onclick="saveSegSettings()" title="שמור הגדרות סף + מצב לכל המבטים" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">💾 שמור הגדרות</button>
+          <button onclick="startCalBgMode()" title="Calibration background subtraction — click 4 grid corners" style="padding:5px 12px;border-radius:8px;border:1px solid #F59E0B;background:rgba(245,158,11,.1);color:#FCD34D;font-size:12px;cursor:pointer;font-weight:600;">📐 Cal Background</button>
+          <button id="seg-save-btn" onclick="saveSegSettings()" title="Save threshold and mode settings for all views" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">💾 Save Settings</button>
         </div>
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px;">
-          <label style="font-size:13px;color:var(--subtle);width:60px;">סף:</label>
+          <label style="font-size:13px;color:var(--subtle);width:60px;">Threshold:</label>
           <input id="seg-slider" type="range" min="30" max="240" value="120" oninput="applyThreshold()"
             style="flex:1;" />
           <span id="seg-val" style="font-family:'Fira Code',monospace;font-size:13px;color:var(--teal-light);width:36px;">120</span>
         </div>
 
         <div style="display:flex;justify-content:space-between;">
-          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← חזור</button>
-          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">המשך →</button>
+          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← Back</button>
+          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">Continue →</button>
         </div>
       </section>
 
       <!-- ─── STEP 3: Contour ─── -->
-      <section class="panel" data-panel="3" style="padding:16px 24px;display:none;">
-        <h2 style="font-size:20px;font-weight:700;margin:0 0 4px;">ציור מתאר</h2>
-        <p style="color:var(--muted);margin:0 0 10px;font-size:13px;">לחץ על גבולות האובייקט, או השתמש בזיהוי אוטומטי. גלגל עכבר להגדלה, גרירה להזזה.</p>
+      <section class="panel" data-panel="3" style="padding:12px 20px;display:none;height:100%;box-sizing:border-box;overflow:hidden;flex-direction:column;">
+        <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:4px;">
+          <h2 style="font-size:18px;font-weight:700;margin:0;">Contour Drawing</h2>
+          <p style="color:var(--muted);margin:0;font-size:12px;">Click on object boundaries, or use auto-detect. Scroll to zoom, drag to pan.</p>
+        </div>
 
         <!-- Row 1: view tabs + auto button -->
         <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-          {[['front','פנים'],['side','צד'],['top','על']].map(([v,label]) => (
+          {[['front','Front'],['side','Side'],['top','Top']].map(([v,label]) => (
             <button class="contour-tab" data-v={v} onclick={`setContourView('${v}')`}
               style="padding:6px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:13px;cursor:pointer;">
               {label}<span id={`ctab-seg-${v}`} style="color:transparent;font-size:11px;"> ✓</span>
@@ -274,54 +295,72 @@ import '../styles/global.css';
           ))}
           <div style="flex:1;"></div>
           <div style="display:flex;align-items:center;gap:6px;background:rgba(13,148,136,.08);border:1px solid var(--teal);border-radius:8px;padding:4px 10px;">
-            <button onclick="autoDetectContour()" style="background:none;border:none;color:var(--teal-light);font-size:13px;font-weight:600;cursor:pointer;">✦ זיהוי אוטומטי</button>
-            <span style="font-size:11px;color:var(--muted);">רגישות:</span>
+            <button onclick="autoDetectContour()" style="background:none;border:none;color:var(--teal-light);font-size:13px;font-weight:600;cursor:pointer;">✦ Auto Detect</button>
+            <span style="font-size:11px;color:var(--muted);">Sensitivity:</span>
             <input id="canny-sens" type="range" min="1" max="10" value="5" style="width:65px;accent-color:#0D9488;" oninput="document.getElementById('canny-sens-val').textContent=this.value" />
             <span id="canny-sens-val" style="font-size:11px;font-family:'Fira Code',monospace;color:var(--teal-light);width:14px;">5</span>
             <span style="width:1px;height:16px;background:var(--border);margin:0 2px;"></span>
-            <label style="font-size:11px;color:var(--muted);">שיפור:</label>
+            <label style="font-size:11px;color:var(--muted);">Enhance:</label>
             <select id="enhance-mode" onchange="autoDetectContour()" style="padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--teal-light);font-size:11px;font-weight:600;cursor:pointer;">
               <option value="clahe" selected>CLAHE ✓</option>
               <option value="zdce">Zero-DCE</option>
-              <option value="none">ללא</option>
+              <option value="none">None</option>
             </select>
           </div>
         </div>
 
         <!-- Row 2: edit tools + guided + smooth + zoom -->
         <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;flex-wrap:wrap;">
-          <button onclick="undoPoint()" title="בטל נקודה אחרונה" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">↩</button>
-          <button id="roi-btn" onclick="toggleRoiMode()" title="סמן אזור ריבועי — זיהוי אוטומטי יפעל רק בתוכו" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">□ ROI</button>
-          <button id="silhouette-btn" onclick="toggleSilhouette()" title="הצג/הסתר סילואט כרקע" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">🎭 סילואט</button>
-          <button id="bgsample-btn" onclick="toggleBgSampleMode()" title="לחץ על אזור רקע בתמונה — המערכת תלמד את הטקסטורה ותסיר אותו מהמתאר" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">🔬 רקע</button>
-          <button onclick="clearContour()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">🗑 נקה</button>
+          <button onclick="undoPoint()" title="Undo last point" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">↩</button>
+          <button id="roi-btn" onclick="toggleRoiMode()" title="Mark rectangular area — auto-detect applies only inside" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">□ ROI</button>
+          <button id="silhouette-btn" onclick="toggleSilhouette()" title="Show/hide silhouette as background" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">🎭 Silhouette</button>
+          <button id="bgsample-btn" onclick="toggleBgSampleMode()" title="Click on background area — system learns its texture and removes it from contour" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">🔬 Background</button>
+          <button onclick="clearContour()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">🗑 Clear</button>
+          <span style="width:1px;height:16px;background:var(--border);flex-shrink:0;"></span>
+          <span style="font-size:11px;color:var(--muted);white-space:nowrap;">Points:</span>
+          <select id="pts-count-sel" onchange="resampleContour(+this.value)"
+            title="Contour point count — algorithm produces exactly this many, you can add more manually"
+            style="padding:3px 6px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--teal-light);font-size:12px;font-weight:600;cursor:pointer;min-width:60px;">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="40" selected>40</option>
+            <option value="60">60</option>
+            <option value="100">100</option>
+            <option value="200">200</option>
+          </select>
           <div style="flex:1;"></div>
-          <span style="font-size:11px;color:var(--muted);">זום:</span>
+          <button id="float-btn" onclick="toggleFloatCanvas()" title="Float image window — drag to move, resize from corner" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 3 3 3 3 9"/><polyline points="15 21 21 21 21 15"/><line x1="3" y1="3" x2="10" y2="10"/><line x1="21" y1="21" x2="14" y2="14"/></svg>
+            Window
+          </button>
+          <span style="width:1px;height:16px;background:var(--border);flex-shrink:0;"></span>
+          <span style="font-size:11px;color:var(--muted);">Zoom:</span>
           <button onclick="zoomBy(1.3)" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
           <button onclick="zoomBy(0.77)" style="width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
           <button onclick="resetZoom()" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">⊙</button>
           <span id="zoom-pct" style="font-family:'Fira Code',monospace;font-size:11px;color:var(--muted);width:36px;">100%</span>
         </div>
 
-        <div style="background:var(--bg);border-radius:12px;overflow:hidden;margin-bottom:10px;display:flex;justify-content:center;align-items:center;">
-          <canvas id="contour-canvas" style="max-width:100%;max-height:calc(100vh - 280px);min-height:320px;cursor:crosshair;touch-action:none;display:block;"></canvas>
+        <div id="contour-canvas-wrap" style="background:var(--bg);border-radius:12px;overflow:hidden;margin-bottom:6px;display:flex;justify-content:center;align-items:center;flex:1;min-height:0;">
+          <canvas id="contour-canvas" style="display:block;cursor:crosshair;touch-action:none;"></canvas>
         </div>
 
-        <div id="contour-info" style="font-size:13px;color:var(--muted);margin-bottom:20px;min-height:18px;font-family:'Fira Code',monospace;"></div>
+        <div id="contour-info" style="font-size:12px;color:var(--muted);margin-bottom:6px;min-height:16px;font-family:'Fira Code',monospace;"></div>
 
-        <div style="display:flex;justify-content:space-between;">
-          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← חזור</button>
-          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">המשך →</button>
+        <div style="display:flex;justify-content:space-between;flex-shrink:0;">
+          <button onclick="prevStep()" style="padding:8px 20px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← Back</button>
+          <button onclick="nextStep()" style="padding:8px 24px;border-radius:10px;font-size:13px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">Continue →</button>
         </div>
       </section>
 
       <!-- ─── STEP 5: Contour Review + Dimensions ─── -->
       <section class="panel" data-panel="5" style="padding:40px;display:none;">
-        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">סקירת מתארים ומידות</h2>
-        <p style="color:var(--muted);margin:0 0 20px;font-size:14px;">מידות האובייקט מחושבות מהמתארים וקנה המידה. בדוק שהכל נכון לפני הציור הסופי.</p>
+        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">Contour Review & Dimensions</h2>
+        <p style="color:var(--muted);margin:0 0 20px;font-size:14px;">Object dimensions are calculated from the contours and scale. Verify everything before the final drawing.</p>
 
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
-          {[['front','פנים'],['side','צד'],['top','על']].map(([v,label]) => (
+          {[['front','Front'],['side','Side'],['top','Top']].map(([v,label]) => (
             <div>
               <div style="font-size:11px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">{label}</div>
               <div style="background:var(--bg);border-radius:10px;overflow:hidden;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;">
@@ -332,23 +371,56 @@ import '../styles/global.css';
         </div>
 
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;">
-          <div style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;">מידות האובייקט</div>
+          <div style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;">Object Dimensions</div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-            {[['dim-W','רוחב (W)','פנים ← → פנים'],['dim-H','גובה (H)','פנים ↑ ↓ פנים'],['dim-D','עומק (D)','צד ← → צד']].map(([id,label,sub]) => (
+            {[['dim-W','Width (W)','Front ← → Front'],['dim-H','Height (H)','Front ↑ ↓ Front'],['dim-D','Depth (D)','Side ← → Side']].map(([id,label,sub]) => (
               <div style="background:var(--bg);border-radius:10px;padding:14px;text-align:center;">
                 <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">{label}</div>
                 <div id={id} style="font-size:26px;font-weight:700;font-family:'Fira Code',monospace;color:var(--subtle);">—</div>
-                <div style="font-size:11px;color:var(--border);margin-top:2px;">מ"מ</div>
+                <div style="font-size:11px;color:var(--border);margin-top:2px;">mm</div>
                 <div style="font-size:10px;color:var(--border);margin-top:4px;">{sub}</div>
               </div>
             ))}
           </div>
         </div>
 
+        <!-- Reference Size Comparison -->
+        <div id="ref-compare-card" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;">Compare with Reference Object</span>
+            <span id="ref-badge" style="font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;display:none;"></span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr) auto;gap:8px;align-items:end;margin-bottom:12px;">
+            <div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Reference Width W (mm)</div>
+              <input id="ref-W" type="number" min="0.1" step="0.1" placeholder="—"
+                style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-family:'Fira Code',monospace;" />
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Reference Height H (mm)</div>
+              <input id="ref-H" type="number" min="0.1" step="0.1" placeholder="—"
+                style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-family:'Fira Code',monospace;" />
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Reference Depth D (mm)</div>
+              <input id="ref-D" type="number" min="0.1" step="0.1" placeholder="—"
+                style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-family:'Fira Code',monospace;" />
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Tolerance (%)</div>
+              <input id="ref-tol" type="number" min="0.5" max="50" step="0.5" value="10"
+                style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-family:'Fira Code',monospace;" />
+            </div>
+            <button onclick="compareWithReference()" style="padding:8px 16px;border-radius:8px;background:var(--teal);color:white;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Compare</button>
+          </div>
+          <div id="ref-rows" style="display:flex;flex-direction:column;gap:6px;"></div>
+          <div id="ref-area" style="margin-top:8px;font-size:12px;color:var(--muted);font-family:'Fira Code',monospace;"></div>
+        </div>
+
         <!-- Scale Cross-Validation (Bundle Adjustment simplified) -->
         <div id="scale-xval" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:24px;display:none;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-            <span style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;">אימות קנה מידה בין מבטים</span>
+            <span style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;">Scale Cross-Validation Between Views</span>
             <span id="xval-badge" style="font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;"></span>
           </div>
           <div id="xval-rows" style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-family:'Fira Code',monospace;"></div>
@@ -356,50 +428,50 @@ import '../styles/global.css';
         </div>
 
         <div style="display:flex;justify-content:space-between;">
-          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← חזור</button>
-          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">המשך →</button>
+          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← Back</button>
+          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">Continue →</button>
         </div>
       </section>
 
       <!-- ─── STEP 6: Visual Hull ─── -->
       <section class="panel" data-panel="6" style="padding:40px;display:none;">
-        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">שחזור 3D</h2>
-        <p style="color:var(--muted);margin:0 0 16px;font-size:14px;">Visual Hull מהמתארים. גרור לסיבוב, גלגל לזום.</p>
+        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">3D Reconstruction</h2>
+        <p style="color:var(--muted);margin:0 0 16px;font-size:14px;">Visual Hull from contours. Drag to rotate, scroll to zoom.</p>
 
         <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;">
           <canvas id="hull-canvas" style="width:100%;display:block;cursor:grab;"></canvas>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
-          {[['W','רוחב'],['H','גובה'],['D','עומק']].map(([k,label]) => (
+          {[['W','Width'],['H','Height'],['D','Depth']].map(([k,label]) => (
             <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
               <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">{label}</div>
               <div id={`hull-dim-${k}`} style="font-size:22px;font-weight:700;font-family:'Fira Code',monospace;color:var(--teal-light);">—</div>
-              <div style="font-size:11px;color:var(--border);">מ"מ</div>
+              <div style="font-size:11px;color:var(--border);">mm</div>
             </div>
           ))}
         </div>
 
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
-          <button onclick="resetHullView()" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">⊙ איפוס</button>
-          <button onclick="toggleHullGrid()" id="hull-grid-btn" style="padding:6px 14px;border-radius:8px;border:1px solid var(--teal);background:rgba(13,148,136,.15);color:var(--teal-light);font-size:12px;cursor:pointer;">רשת ✓</button>
-          <span style="font-size:11px;color:var(--muted);margin-right:auto;">הגבהה:</span>
+          <button onclick="resetHullView()" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">⊙ Reset</button>
+          <button onclick="toggleHullGrid()" id="hull-grid-btn" style="padding:6px 14px;border-radius:8px;border:1px solid var(--teal);background:rgba(13,148,136,.15);color:var(--teal-light);font-size:12px;cursor:pointer;">Grid ✓</button>
+          <span style="font-size:11px;color:var(--muted);margin-right:auto;">Elevation:</span>
           <input id="hull-el" type="range" min="-30" max="70" value="22" style="width:80px;accent-color:#0D9488;" oninput="hull.el=parseInt(this.value);renderVisualHull();" />
         </div>
 
         <div style="display:flex;justify-content:space-between;">
-          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← חזור</button>
-          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">המשך →</button>
+          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← Back</button>
+          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">Continue →</button>
         </div>
       </section>
 
       <!-- ─── STEP 7: Vectorization ─── -->
       <section class="panel" data-panel="7" style="padding:40px;display:none;">
-        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">וקטוריזציה</h2>
-        <p style="color:var(--muted);margin:0 0 16px;font-size:14px;">זיהוי קטעים ישרים (ירוק) וקשתות (כתום) במתאר.</p>
+        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">Vectorization</h2>
+        <p style="color:var(--muted);margin:0 0 16px;font-size:14px;">Detect straight segments (green) and arcs (orange) in the contour.</p>
 
         <div style="display:flex;gap:8px;margin-bottom:14px;">
-          {[['front','פנים'],['side','צד'],['top','על']].map(([v,label]) => (
+          {[['front','Front'],['side','Side'],['top','Top']].map(([v,label]) => (
             <button class="vec-tab" data-v={v} onclick={`setVecView('${v}')`}
               style="padding:6px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:13px;cursor:pointer;">{label}</button>
           ))}
@@ -410,37 +482,37 @@ import '../styles/global.css';
             <canvas id="vec-canvas" style="max-width:100%;display:block;"></canvas>
           </div>
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;">
-            <div style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">גאומטריה</div>
+            <div style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Geometry</div>
             <div id="vec-stats" style="font-size:12px;color:var(--muted);">—</div>
             <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
-              <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">סף פישוט:</div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Simplification Threshold:</div>
               <input id="vec-eps" type="range" min="1" max="20" value="5" oninput="renderVectorize()" style="width:100%;" />
               <div id="vec-eps-val" style="font-size:11px;color:var(--teal-light);text-align:center;margin-top:4px;font-family:'Fira Code',monospace;">5 px</div>
             </div>
             <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <div style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;">תיאור צורה</div>
-                <button onclick="computeShapeDescriptors()" style="padding:3px 10px;border-radius:6px;border:1px solid #7C3AED;background:rgba(124,58,237,.1);color:#A78BFA;font-size:11px;cursor:pointer;font-weight:600;">🔷 חשב</button>
+                <div style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.05em;">Shape Description</div>
+                <button onclick="computeShapeDescriptors()" style="padding:3px 10px;border-radius:6px;border:1px solid #7C3AED;background:rgba(124,58,237,.1);color:#A78BFA;font-size:11px;cursor:pointer;font-weight:600;">🔷 Compute</button>
               </div>
-              <div id="shape-desc" style="font-size:11px;color:var(--muted);">לחץ "חשב" לניתוח צורה</div>
+              <div id="shape-desc" style="font-size:11px;color:var(--muted);">Click "Compute" for shape analysis</div>
               <canvas id="radial-sig-canvas" width="200" height="56" style="width:100%;margin-top:8px;border-radius:6px;display:none;"></canvas>
             </div>
           </div>
         </div>
 
         <div style="display:flex;justify-content:space-between;margin-top:24px;">
-          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← חזור</button>
-          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">המשך →</button>
+          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← Back</button>
+          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">Continue →</button>
         </div>
       </section>
 
       <!-- ─── STEP 8: Dimensions ─── -->
       <section class="panel" data-panel="8" style="padding:40px;display:none;">
-        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">קווי מידה</h2>
-        <p style="color:var(--muted);margin:0 0 16px;font-size:14px;">מידות אוטומטיות מה-bounding box של כל מתאר. לחץ על מידה לעריכה.</p>
+        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">Dimension Lines</h2>
+        <p style="color:var(--muted);margin:0 0 16px;font-size:14px;">Automatic dimensions from the bounding box of each contour. Click a dimension to edit.</p>
 
         <div style="display:flex;gap:8px;margin-bottom:14px;">
-          {[['front','פנים'],['side','צד'],['top','על']].map(([v,label]) => (
+          {[['front','Front'],['side','Side'],['top','Top']].map(([v,label]) => (
             <button class="dim-tab" data-v={v} onclick={`setDimView('${v}')`}
               style="padding:6px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:13px;cursor:pointer;">{label}</button>
           ))}
@@ -452,31 +524,31 @@ import '../styles/global.css';
           </div>
 
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;">
-            <div style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;margin-bottom:12px;">מידות (מ"מ)</div>
+            <div style="font-size:12px;font-weight:700;color:var(--subtle);text-transform:uppercase;margin-bottom:12px;">Dimensions (mm)</div>
             <div id="dim-list" style="font-family:'Fira Code',monospace;font-size:13px;color:var(--text);"></div>
           </div>
         </div>
 
         <div style="display:flex;justify-content:space-between;margin-top:24px;">
-          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← חזור</button>
-          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">המשך →</button>
+          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← Back</button>
+          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">Continue →</button>
         </div>
       </section>
 
       <!-- ─── STEP 9: Drawing Layout ─── -->
       <section class="panel" data-panel="9" style="padding:40px;display:none;">
-        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">פריסת ציור</h2>
-        <p style="color:var(--muted);margin:0 0 16px;font-size:14px;">סרטוט טכני לפי תקן — 3 מבטים אורתוגונליים עם קווי היטל.</p>
+        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">Drawing Layout</h2>
+        <p style="color:var(--muted);margin:0 0 16px;font-size:14px;">Technical drawing to standard — 3 orthogonal views with projection lines.</p>
 
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
-          <label style="font-size:13px;color:var(--subtle);">שם החלק:</label>
-          <input id="part-name" type="text" placeholder="חלק מס' 1" value="חלק מס' 1"
+          <label style="font-size:13px;color:var(--subtle);">Part Name:</label>
+          <input id="part-name" type="text" placeholder="Part No. 1" value="Part No. 1"
             style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;width:180px;" />
-          <label style="font-size:13px;color:var(--subtle);">קנה מידה:</label>
+          <label style="font-size:13px;color:var(--subtle);">Scale:</label>
           <select id="draw-scale" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;">
             <option value="1">1:1</option><option value="2">1:2</option><option value="5">1:5</option><option value="10">1:10</option>
           </select>
-          <button onclick="renderLayout()" style="padding:6px 16px;border-radius:8px;background:var(--teal);color:white;border:none;font-size:13px;cursor:pointer;">רענן</button>
+          <button onclick="renderLayout()" style="padding:6px 16px;border-radius:8px;background:var(--teal);color:white;border:none;font-size:13px;cursor:pointer;">Refresh</button>
         </div>
 
         <div style="background:#fff;border-radius:12px;overflow:hidden;display:flex;justify-content:center;box-shadow:0 0 0 1px var(--border);">
@@ -484,17 +556,17 @@ import '../styles/global.css';
         </div>
 
         <div style="display:flex;justify-content:space-between;margin-top:20px;">
-          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← חזור</button>
-          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">המשך → ייצוא</button>
+          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← Back</button>
+          <button onclick="nextStep()" style="padding:10px 26px;border-radius:10px;font-size:14px;font-weight:600;border:none;background:var(--teal);color:white;cursor:pointer;">Continue → Export</button>
         </div>
       </section>
 
       <!-- ─── STEP 10: Export ─── -->
       <section class="panel" data-panel="10" style="padding:40px;display:none;">
-        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">ייצוא</h2>
-        <p style="color:var(--muted);margin:0 0 28px;font-size:14px;">הורד את הסרטוט הטכני בפורמט שתבחר.</p>
+        <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">Export</h2>
+        <p style="color:var(--muted);margin:0 0 28px;font-size:14px;">Download the technical drawing in your chosen format.</p>
 
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:32px;">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:32px;" class="export-grid-4">
           <button onclick="exportDXF()" style="padding:24px 16px;border-radius:14px;border:1px solid var(--teal);background:rgba(13,148,136,.08);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;transition:border-color .2s;">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
@@ -509,15 +581,15 @@ import '../styles/global.css';
               <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/>
             </svg>
             <span style="font-size:15px;font-weight:700;color:var(--text);">SVG</span>
-            <span style="font-size:12px;color:var(--muted);">וקטורי — לעריכה</span>
+            <span style="font-size:12px;color:var(--muted);">Vector — editable</span>
           </button>
 
           <button onclick="exportPrint()" style="padding:24px 16px;border-radius:14px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;transition:border-color .2s;">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5">
               <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
             </svg>
-            <span style="font-size:15px;font-weight:700;color:var(--text);">PDF / הדפסה</span>
-            <span style="font-size:12px;color:var(--muted);">פתח ב-Print לPDF</span>
+            <span style="font-size:15px;font-weight:700;color:var(--text);">PDF / Print</span>
+            <span style="font-size:12px;color:var(--muted);">Open in Print → Save as PDF</span>
           </button>
 
           <button onclick="exportPNG()" style="padding:24px 16px;border-radius:14px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;transition:border-color .2s;">
@@ -525,17 +597,17 @@ import '../styles/global.css';
               <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
             </svg>
             <span style="font-size:15px;font-weight:700;color:var(--text);">PNG</span>
-            <span style="font-size:12px;color:var(--muted);">תמונה — לשיתוף</span>
+            <span style="font-size:12px;color:var(--muted);">Image — for sharing</span>
           </button>
         </div>
 
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;">
-          <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">תצוגה מקדימה</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Preview</div>
           <canvas id="export-preview" style="max-width:100%;border-radius:8px;background:#fff;"></canvas>
         </div>
 
         <div style="margin-top:20px;text-align:center;">
-          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← חזור</button>
+          <button onclick="prevStep()" style="padding:10px 22px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">← Back</button>
         </div>
       </section>
 
@@ -576,6 +648,11 @@ function persistState() {
     step: S.step, scale: S.scale, polys: S.polys,
     polyCanvasSize: S.polyCanvasSize, dims: S.dims,
     segThresholds, segModes,
+    floatWin: S.floatWin,
+    contourTargetPts: S.contourTargetPts,
+    holes: S.holes,
+    imgMeta: S.imgMeta, segMeta: S.segMeta,
+    contourBbox: S.contourBbox, contourInfo: S.contourInfo,
   });
   IDB.put('measurements', measurements);
 }
@@ -584,7 +661,7 @@ async function restoreSession() {
   try {
     for (const v of ['front','side','top','iso']) {
       const blob = await IDB.get(`img-${v}`);
-      if (blob) { const url = URL.createObjectURL(blob); setImg(v, url); }
+      if (blob) { const url = URL.createObjectURL(blob); setImg(v, url, true); }
     }
     const st = await IDB.get('state');
     if (st) {
@@ -594,6 +671,9 @@ async function restoreSession() {
       if (st.dims) S.dims = st.dims;
       if (st.segThresholds) Object.assign(segThresholds, st.segThresholds);
       if (st.segModes)      Object.assign(segModes,      st.segModes);
+      if (st.floatWin)         S.floatWin = st.floatWin;
+      if (st.contourTargetPts) S.contourTargetPts = st.contourTargetPts;
+      if (st.holes)            S.holes = st.holes;
     }
     const ms = await IDB.get('measurements');
     if (ms) { ['front','side','top'].forEach(v => { if (ms[v]) measurements[v] = ms[v]; }); }
@@ -629,6 +709,7 @@ function _rebuildSegMasks() {
       }
       if (!S.segMasks) S.segMasks={};
       S.segMasks[v]={mask,W,H};
+      _updateSegMeta(v, mask, W, H);
       _updateContourSegBadges();
       // If the user is already on the contour step, refresh the background composite
       // so the teal silhouette overlay appears immediately without manual action.
@@ -644,6 +725,10 @@ function _rebuildSegMasks() {
 const S = {
   step: 1,
   imgs: { front: null, side: null, top: null },
+  imgMeta: {},     // naturalW/H, aspect, suggestedThreshold — set at upload
+  segMeta: {},     // bbox, area, W, H of silhouette — set after segmentation
+  contourBbox: {}, // canvas-space bbox of closed polygon — set in updateContourInfo
+  contourInfo: {}, // areaPx, areaRatio (vs silhouette), perimPx — set in updateContourInfo
   scale: { front: null, side: null, top: null },
   polys: { front: { pts: [], closed: false }, side: { pts: [], closed: false }, top: { pts: [], closed: false } },
   scaleView: 'front',
@@ -652,26 +737,50 @@ const S = {
   segImgData: null,
   contourView: 'front',
   mouse: null,
+  floatWin: null,      // saved position/size of floating canvas window {x,y,w,h}
+  contourTargetPts: 40, // target point count for auto-detect resampling
 };
 
 const STEPS = [
-  [1,'העלאת תמונות','3 צילומים + סרגל'],
-  [2,'הפרדת רקע','סילואט אוטומטי'],
-  [3,'ציור מתאר','polygon וקטורי'],
-  [4,'קנה מידה','px/mm מהסרגל'],
-  [5,'סקירת מתארים','מידות ראשוניות'],
-  [6,'שחזור 3D','Visual Hull'],
-  [7,'וקטוריזציה','קווים נקיים'],
-  [8,'קווי מידה','מידות ב-mm'],
-  [9,'פריסת ציור','ת"י 162 / ISO'],
-  [10,'ייצוא','DXF / SVG / PDF'],
+  [1,'Upload Images','3 photos + ruler'],
+  [2,'Background Separation','auto silhouette'],
+  [3,'Contour Drawing','vector polygon'],
+  [4,'Scale','px/mm from ruler'],
+  [5,'Contour Review','initial dimensions'],
+  [6,'3D Reconstruction','Visual Hull'],
+  [7,'Vectorization','clean lines'],
+  [8,'Dimension Lines','dimensions in mm'],
+  [9,'Drawing Layout','ISO standard'],
+  [10,'Export','DXF / SVG / PDF'],
 ];
+
+// ══════════════════════════ SIDEBAR TOGGLE ══════════════════════════
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const btn = document.getElementById('sidebar-toggle');
+  if (!sb) return;
+  const collapsed = sb.dataset.collapsed === '1';
+  if (collapsed) {
+    sb.dataset.collapsed = '0';
+    sb.style.setProperty('width',   '220px', 'important');
+    sb.style.setProperty('padding', '10px',  'important');
+    if (btn) btn.style.color = 'var(--subtle)';
+  } else {
+    sb.dataset.collapsed = '1';
+    sb.style.setProperty('width',   '0', 'important');
+    sb.style.setProperty('padding', '0', 'important');
+    if (btn) btn.style.color = 'var(--teal-light)';
+  }
+  // Rebuild canvas when available width changes
+  if (S.step === 3) setTimeout(initContour, 250);
+  if (S.step === 4) setTimeout(initScale,   250);
+}
 
 // ══════════════════════════ SIDEBAR ══════════════════════════
 function buildSidebar() {
   document.getElementById('sidebar').innerHTML = STEPS.map(([id, name, desc]) => `
     <button onclick="goTo(${id})" id="sb${id}"
-      style="width:100%;display:flex;align-items:flex-start;gap:10px;padding:10px 10px;border-radius:8px;border:none;cursor:pointer;margin-bottom:2px;text-align:right;background:transparent;transition:background .15s;">
+      style="width:100%;display:flex;align-items:flex-start;gap:10px;padding:10px 10px;border-radius:8px;border:none;cursor:pointer;margin-bottom:2px;text-align:left;background:transparent;transition:background .15s;">
       <span id="sbn${id}" style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:'Fira Code',monospace;font-weight:700;flex-shrink:0;margin-top:1px;background:#334155;color:#64748B;">${id}</span>
       <div>
         <div id="sbname${id}" style="font-size:13px;font-weight:500;color:#94A3B8;">${name}</div>
@@ -701,9 +810,28 @@ function refreshSidebar() {
 // ══════════════════════════ NAVIGATION ══════════════════════════
 function goTo(n) {
   S.step = n;
-  document.querySelectorAll('.panel').forEach(p => p.style.display = p.dataset.panel == n ? 'block' : 'none');
-  document.getElementById('step-label').textContent = `שלב ${n} מתוך 10`;
+  const main = document.getElementById('main');
+  const flexPanel = n === 3 || n === 4;
+  document.querySelectorAll('.panel').forEach(p => {
+    if (p.dataset.panel == n) {
+      if (flexPanel) {
+        p.style.display = 'flex';
+        p.style.flexDirection = 'column';
+      } else {
+        p.style.display = 'block';
+        p.style.flexDirection = '';
+      }
+    } else {
+      p.style.display = 'none';
+    }
+  });
+  // Steps 3–4 fill the main area — no scroll; all other steps scroll normally
+  if (main) main.style.overflow = flexPanel ? 'hidden' : 'auto';
+  document.getElementById('step-label').textContent = `Step ${n} of 10`;
   document.getElementById('progress-bar').style.width = `${n * 10}%`;
+  const prev = document.getElementById('hdr-prev'), next = document.getElementById('hdr-next');
+  if (prev) { prev.disabled = n <= 1;  prev.style.opacity = n <= 1  ? '.3' : '1'; prev.style.cursor = n <= 1  ? 'default' : 'pointer'; }
+  if (next) { next.disabled = n >= 10; next.style.opacity = n >= 10 ? '.3' : '1'; next.style.cursor = n >= 10 ? 'default' : 'pointer'; }
   refreshSidebar();
   onActivate(n);
   persistState();
@@ -715,13 +843,20 @@ function prevStep() { if (S.step > 1) goTo(S.step - 1); }
 function onActivate(n) {
   if (n === 2) initSeg();
   if (n === 3) {
-    initContour();
-    // Auto-run detection after canvas is ready — small delay for canvas init
-    setTimeout(() => {
-      if (S.polys[S.contourView]?.pts?.length === 0) autoDetectContour();
-    }, 120);
+    // Ensure all 3 views have segmentation masks before building the canvas
+    const views = ['front','side','top'];
+    let pending = views.filter(v => S.imgs[v] && !S.segMasks?.[v]).length || 0;
+    const onReady = () => {
+      if (--pending > 0) return;
+      initContour();
+      setTimeout(() => {
+        if (!S.polys[S.contourView]?.pts?.length) autoDetectContour();
+      }, 150);
+    };
+    if (pending === 0) { initContour(); setTimeout(() => { if (!S.polys[S.contourView]?.pts?.length) autoDetectContour(); }, 150); }
+    else views.forEach(v => { if (S.imgs[v] && !S.segMasks?.[v]) _ensureSegMask(v, onReady); });
   }
-  if (n === 4) { initScale(); document.getElementById('meas-view-label').textContent = 'מבט פנים'; renderMeasurements(); }
+  if (n === 4) { initScale(); document.getElementById('meas-view-label').textContent = 'Front View'; renderMeasurements(); }
   if (n === 5) initReview();
   if (n === 6) initVisualHull();
   if (n === 7) initVectorize();
@@ -740,7 +875,7 @@ function handleUpload(e, v) {
   setImg(v, url);
 }
 
-function setImg(v, url) {
+function setImg(v, url, isRestore = false) {
   S.imgs[v] = url;
   const img = new Image();
   img.onload = () => {
@@ -749,6 +884,7 @@ function setImg(v, url) {
     document.getElementById(`placeholder-${v}`).style.display = 'none';
     const del = document.getElementById(`delete-${v}`);
     if (del) del.style.display = 'flex';
+    if (!isRestore) _analyzeImg(v, img);
   };
   img.src = url;
   document.querySelector(`.upload-zone[data-view="${v}"]`).style.borderColor = 'var(--teal)';
@@ -776,15 +912,97 @@ function deleteImg(v) {
   checkUploads();
 }
 
-function checkUploads() {
-  const n = [S.imgs.front, S.imgs.side, S.imgs.top].filter(Boolean).length;
-  document.getElementById('upload-status').textContent = n === 3 ? '✓ כל 3 התמונות הועלו — אפשר להמשיך' : `${n} מתוך 3 תמונות הועלו`;
-  document.getElementById('upload-status').style.color = n === 3 ? 'var(--teal-light)' : 'var(--muted)';
-  const btn = document.getElementById('step1-next');
-  if (n === 3) { btn.disabled = false; btn.style.background = 'var(--orange)'; btn.style.color = 'white'; btn.style.cursor = 'pointer'; }
+// Guarantees S.segMasks[view] exists before the contour step needs it.
+// If missing, auto-computes the mask from the image using the stored threshold.
+// Calls callback() when ready (synchronously if mask already exists).
+function _ensureSegMask(view, callback) {
+  if (S.segMasks?.[view] || !S.imgs[view]) { callback(); return; }
+  const img = new Image();
+  img.onload = () => {
+    const maxW=900, maxH=700;
+    const r = Math.min(maxW/img.width, maxH/img.height, 1);
+    const W = Math.round(img.width*r), H = Math.round(img.height*r);
+    const tmp = document.createElement('canvas'); tmp.width=W; tmp.height=H;
+    const ctx = tmp.getContext('2d'); ctx.drawImage(img,0,0,W,H);
+    const src = ctx.getImageData(0,0,W,H).data;
+    const t = segThresholds[view] ?? 120;
+    const mode = segModes[view] ?? 'dark';
+    let mask = new Uint8ClampedArray(W*H);
+    for (let i=0; i<W*H; i++) {
+      const g = src[i*4]*.299 + src[i*4+1]*.587 + src[i*4+2]*.114;
+      mask[i] = (mode==='dark' ? g<t : g>t) ? 255 : 0;
+    }
+    mask = _removeBorderConnected(mask, W, H);
+    if (!S.segMasks) S.segMasks = {};
+    S.segMasks[view] = { mask, W, H };
+    _updateSegMeta(view, mask, W, H);
+    callback();
+  };
+  img.src = S.imgs[view];
 }
 
-// Drag-drop
+// Runs on fresh upload (not session-restore). Extracts natural dimensions and
+// computes an Otsu threshold suggestion so step 2 starts with a sensible value.
+function _analyzeImg(view, img) {
+  S.imgMeta[view] = {
+    W: img.naturalWidth,
+    H: img.naturalHeight,
+    aspect: img.naturalWidth / (img.naturalHeight || 1),
+  };
+  const SZ = 200;
+  const r = Math.min(SZ / img.width, SZ / img.height, 1);
+  const tmp = document.createElement('canvas');
+  tmp.width = Math.round(img.width * r); tmp.height = Math.round(img.height * r);
+  const ctx = tmp.getContext('2d');
+  ctx.drawImage(img, 0, 0, tmp.width, tmp.height);
+  const data = ctx.getImageData(0, 0, tmp.width, tmp.height).data;
+  const n = tmp.width * tmp.height;
+  const hist = new Int32Array(256);
+  for (let i = 0; i < n; i++) hist[Math.round(data[i*4]*.299 + data[i*4+1]*.587 + data[i*4+2]*.114)]++;
+  let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sumB = 0, wB = 0, maxV = 0, thresh = 128;
+  for (let i = 0; i < 256; i++) {
+    wB += hist[i]; if (!wB) continue;
+    const wF = n - wB; if (!wF) break;
+    sumB += i * hist[i];
+    const sc = wB * wF * ((sumB/wB) - (sum-sumB)/wF) ** 2;
+    if (sc > maxV) { maxV = sc; thresh = i; }
+  }
+  S.imgMeta[view].suggestedThreshold = thresh;
+  // Pre-seed the segmentation threshold so step 2 opens with the right value
+  segThresholds[view] = thresh;
+}
+
+// Computes silhouette bounding-box + pixel area and stores in S.segMeta[view].
+// Called from every place that writes S.segMasks so downstream steps always have it.
+function _updateSegMeta(view, mask, W, H) {
+  let mnX = W, mnY = H, mxX = 0, mxY = 0, area = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (mask[y*W+x]) {
+      area++;
+      if (x < mnX) mnX = x; if (x > mxX) mxX = x;
+      if (y < mnY) mnY = y; if (y > mxY) mxY = y;
+    }
+  }
+  S.segMeta[view] = (mxX > mnX && mxY > mnY)
+    ? { bbox: { minX: mnX, minY: mnY, maxX: mxX, maxY: mxY }, area, W, H }
+    : null;
+}
+
+function checkUploads() {
+  const n = [S.imgs.front, S.imgs.side, S.imgs.top].filter(Boolean).length;
+  document.getElementById('upload-status').textContent = n === 3 ? '✓ All 3 images uploaded — ready to continue' : `${n} of 3 images uploaded`;
+  document.getElementById('upload-status').style.color = n === 3 ? 'var(--teal-light)' : 'var(--muted)';
+  const btn = document.getElementById('step1-next');
+  if (!btn) return;
+  const ready = n === 3;
+  btn.disabled = !ready;
+  btn.style.background = ready ? 'var(--orange)' : 'var(--border)';
+  btn.style.color = ready ? 'white' : 'var(--muted)';
+  btn.style.cursor = ready ? 'pointer' : 'not-allowed';
+}
+
+// Drag-drop + init
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.upload-zone').forEach(z => {
     z.addEventListener('dragover', e => { e.preventDefault(); z.style.borderColor = 'var(--teal)'; });
@@ -795,12 +1013,55 @@ document.addEventListener('DOMContentLoaded', () => {
       if (f?.type.startsWith('image/')) handleUpload({ target: { files: [f] } }, z.dataset.view);
     });
   });
+
+  // Auto-collapse sidebar on narrow viewports
+  if (window.innerWidth <= 900) {
+    const sb = document.getElementById('sidebar');
+    if (sb) { sb.style.width='0'; sb.style.padding='0'; sb.dataset.collapsed='1'; }
+    const btn = document.getElementById('sidebar-toggle');
+    if (btn) btn.style.color = 'var(--teal-light)';
+  }
+
+  // Rebuild contour canvas on window resize (debounced)
+  let _resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(() => {
+      if (S.step === 3) initContour();
+      if (S.step === 4) initScale();
+    }, 200);
+  });
+
+  // ResizeObserver for canvas wrappers (handles sidebar toggle etc.)
+  const wrap = document.getElementById('contour-canvas-wrap');
+  if (wrap && typeof ResizeObserver !== 'undefined') {
+    let _roTimer;
+    new ResizeObserver(() => {
+      if (S.step !== 3) return;
+      clearTimeout(_roTimer);
+      _roTimer = setTimeout(initContour, 150);
+    }).observe(wrap);
+  }
+  const scaleWrap = document.getElementById('scale-canvas-wrap');
+  if (scaleWrap && typeof ResizeObserver !== 'undefined') {
+    let _scaleRoTimer;
+    new ResizeObserver(() => {
+      if (S.step !== 4) return;
+      clearTimeout(_scaleRoTimer);
+      _scaleRoTimer = setTimeout(initScale, 150);
+    }).observe(scaleWrap);
+  }
+
   buildSidebar();
+  // Sync collapsed state with actual initial width (media query may have hidden it)
+  const _sb = document.getElementById('sidebar');
+  if (_sb && _sb.offsetWidth === 0) _sb.dataset.collapsed = '1';
   restoreSession();
 });
 
 // ══════════════════════════ STEP 2: SCALE ══════════════════════════
 let scC, scCtx, scImg;
+let scZoom = { s: 1 };
 
 // ── Ruler auto-detection (autocorrelation on Sobel edges) ────
 function _autocorrelPeriod(signal, minLag, maxLag) {
@@ -897,9 +1158,9 @@ function detectRulerScale(gray, W, H) {
 
 function autoDetectScale() {
   const url = S.imgs[S.scaleView];
-  if (!url) return alert('העלה תמונה קודם');
+  if (!url) return alert('Please upload an image first');
   const infoEl = document.getElementById('ruler-detect-info');
-  if (infoEl) infoEl.textContent = '⏳ מזהה...';
+  if (infoEl) infoEl.textContent = '⏳ Detecting...';
   setTimeout(() => {
     const tmpC = document.createElement('canvas');
     const img = new Image();
@@ -916,11 +1177,11 @@ function autoDetectScale() {
       const periodOrig = result.period / sc;
 
       if (result.confidence <= 0 || result.period < 2) {
-        if (infoEl) infoEl.textContent = '❌ לא זוהה סרגל — ודא שהסרגל נמצא בתמונה';
+        if (infoEl) infoEl.textContent = '❌ Ruler not detected — make sure the ruler is visible in the image';
         return;
       }
-      const dir = result.orientation === 'horizontal' ? 'אופקי' : 'אנכי';
-      if (infoEl) infoEl.textContent = `✓ סרגל ${dir} · ${result.peakCount} סימנים · ${Math.round(periodOrig)}px בין סימנים`;
+      const dir = result.orientation === 'horizontal' ? 'horizontal' : 'vertical';
+      if (infoEl) infoEl.textContent = `✓ ${dir} ruler · ${result.peakCount} marks · ${Math.round(periodOrig)}px between marks`;
       showRulerDialog(periodOrig, result);
     };
     img.src = url;
@@ -932,25 +1193,25 @@ function showRulerDialog(periodPx, result) {
   if (old) old.remove();
   const dlg = document.createElement('div');
   dlg.id = 'ruler-dlg';
-  dlg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;z-index:2000;min-width:340px;direction:rtl;box-shadow:0 20px 60px rgba(0,0,0,.6);';
+  dlg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;z-index:2000;min-width:340px;direction:ltr;box-shadow:0 20px 60px rgba(0,0,0,.6);';
   const mm = result.suggestedMm;
   const px = Math.round(periodPx);
   dlg.innerHTML = `
     <div style="font-size:26px;text-align:center;margin-bottom:10px;">📏</div>
-    <h3 style="color:var(--teal-light);margin:0 0 6px;font-size:16px;text-align:center;">זיהוי סרגל</h3>
-    <p style="color:var(--muted);font-size:13px;text-align:center;margin:0 0 18px;">${result.orientation==='horizontal'?'אופקי':'אנכי'} · ${result.peakCount} סימנים · ${px}px בין סימנים</p>
-    <div style="font-size:13px;color:var(--text);margin-bottom:10px;font-weight:600;">המרחק הזה שווה ל:</div>
+    <h3 style="color:var(--teal-light);margin:0 0 6px;font-size:16px;text-align:center;">Ruler Detected</h3>
+    <p style="color:var(--muted);font-size:13px;text-align:center;margin:0 0 18px;">${result.orientation==='horizontal'?'horizontal':'vertical'} · ${result.peakCount} marks · ${px}px between marks</p>
+    <div style="font-size:13px;color:var(--text);margin-bottom:10px;font-weight:600;">This distance equals:</div>
     <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
       ${[0.5,1,2,5,10].map(v=>`
         <button onclick="applyRulerScale(${periodPx},${v})"
           style="flex:1;padding:10px 6px;background:${v===mm?'rgba(13,148,136,.2)':'var(--bg)'};border:1px solid ${v===mm?'var(--teal)':'var(--border)'};border-radius:8px;color:${v===mm?'var(--teal-light)':'var(--subtle)'};cursor:pointer;font-size:13px;font-weight:600;">
-          ${v} מ"מ${v===mm?'<br><span style="font-size:10px;color:var(--teal-light)">מומלץ</span>':''}
+          ${v} mm${v===mm?'<br><span style="font-size:10px;color:var(--teal-light)">recommended</span>':''}
         </button>`).join('')}
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">או הזן ידנית: <input id="ruler-manual-mm" type="number" value="${mm}" step="0.5" min="0.1" style="width:70px;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;margin:0 6px;"> מ"מ
-      <button onclick="applyRulerScale(${periodPx},parseFloat(document.getElementById('ruler-manual-mm').value))" style="padding:5px 14px;background:var(--teal);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">אשר</button>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Or enter manually: <input id="ruler-manual-mm" type="number" value="${mm}" step="0.5" min="0.1" style="width:70px;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;margin:0 6px;"> mm
+      <button onclick="applyRulerScale(${periodPx},parseFloat(document.getElementById('ruler-manual-mm').value))" style="padding:5px 14px;background:var(--teal);color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Apply</button>
     </div>
-    <button onclick="document.getElementById('ruler-dlg').remove()" style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-size:13px;">ביטול</button>
+    <button onclick="document.getElementById('ruler-dlg').remove()" style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;font-size:13px;">Cancel</button>
   `;
   document.body.appendChild(dlg);
 }
@@ -968,7 +1229,7 @@ function applyRulerScale(periodPx, mm) {
   renderMeasurements();
   drawScale();
   const infoEl = document.getElementById('ruler-detect-info');
-  if (infoEl) infoEl.textContent = `✓ ${pxPerMM.toFixed(2)} px/mm הוגדר (${Math.round(periodPx)}px = ${mm}מ"מ)`;
+  if (infoEl) infoEl.textContent = `✓ ${pxPerMM.toFixed(2)} px/mm set (${Math.round(periodPx)}px = ${mm}mm)`;
   const dlg = document.getElementById('ruler-dlg');
   if (dlg) dlg.remove();
 }
@@ -984,7 +1245,7 @@ function setScaleView(v) {
     t.style.borderColor = a ? 'var(--teal)' : 'var(--border)';
   });
   const lbl = document.getElementById('meas-view-label');
-  if (lbl) lbl.textContent = v === 'front' ? 'מבט פנים' : v === 'side' ? 'מבט צד' : 'מבט על';
+  if (lbl) lbl.textContent = v === 'front' ? 'Front View' : v === 'side' ? 'Side View' : 'Top View';
   renderMeasurements();
   initScale();
 }
@@ -994,68 +1255,102 @@ function initScale() {
   scCtx = scC.getContext('2d');
   const url = S.imgs[S.scaleView];
   if (!url) { scCtx.clearRect(0,0,scC.width,scC.height); return; }
-  scImg = new Image();
-  scImg.onload = () => {
-    const maxW = scC.parentElement.offsetWidth - 2;
-    const r = Math.min(maxW / scImg.width, 340 / scImg.height, 1);
-    scC.width = Math.round(scImg.width * r);
-    scC.height = Math.round(scImg.height * r);
-    drawScale();
+  const img = new Image();
+  scImg = img;
+  img.onload = () => {
+    if (img !== scImg) return;   // stale — a newer load is in progress
+    const par = scC.parentElement;
+    // Use rAF so the float window (or newly visible panel) is fully laid out
+    requestAnimationFrame(() => {
+      if (img !== scImg) return;
+      const maxW = Math.max(par.offsetWidth  - 2, 200);
+      const maxH = Math.max(par.offsetHeight - 2, 200);
+      const r = Math.min(maxW / img.width, maxH / img.height, 1);
+      scC.width  = Math.round(img.width  * r);
+      scC.height = Math.round(img.height * r);
+      drawScale();
+    });
   };
-  scImg.src = url;
+  img.src = url;
   scC.onclick = (e) => {
     if (S.scalePts.length >= 2) S.scalePts = [];
     const rc = scC.getBoundingClientRect();
-    S.scalePts.push({ x: (e.clientX - rc.left) * (scC.width / rc.width), y: (e.clientY - rc.top) * (scC.height / rc.height) });
+    const mx = (e.clientX - rc.left) * (scC.width / rc.width);
+    const my = (e.clientY - rc.top)  * (scC.height / rc.height);
+    // Inverse zoom transform: canvas center is anchor
+    const s = scZoom.s, cx = scC.width / 2, cy = scC.height / 2;
+    S.scalePts.push({ x: (mx - cx) / s + cx, y: (my - cy) / s + cy });
     drawScale(); updatePtsInfo();
   };
+  scC.onwheel = (e) => { e.preventDefault(); scaleZoomBy(e.deltaY < 0 ? 1.15 : 1/1.15); };
 }
 
 function drawScale() {
   if (!scCtx || !scImg) return;
+  const s = scZoom.s, cx = scC.width / 2, cy = scC.height / 2;
+  scCtx.clearRect(0, 0, scC.width, scC.height);
+  scCtx.save();
+  scCtx.translate(cx, cy);
+  scCtx.scale(s, s);
+  scCtx.translate(-cx, -cy);
   scCtx.drawImage(scImg, 0, 0, scC.width, scC.height);
 
   // Draw previous measurements as grey lines
   measurements[S.scaleView].forEach(m => {
     if (!m.pts) return;
     scCtx.beginPath(); scCtx.moveTo(m.pts[0].x, m.pts[0].y); scCtx.lineTo(m.pts[1].x, m.pts[1].y);
-    scCtx.strokeStyle = 'rgba(148,163,184,.5)'; scCtx.lineWidth = 1.5;
-    scCtx.setLineDash([4,3]); scCtx.stroke(); scCtx.setLineDash([]);
+    scCtx.strokeStyle = 'rgba(148,163,184,.5)'; scCtx.lineWidth = 1.5 / s;
+    scCtx.setLineDash([4/s,3/s]); scCtx.stroke(); scCtx.setLineDash([]);
     [m.pts[0], m.pts[1]].forEach(p => {
-      scCtx.beginPath(); scCtx.arc(p.x, p.y, 4, 0, Math.PI*2);
+      scCtx.beginPath(); scCtx.arc(p.x, p.y, 4/s, 0, Math.PI*2);
       scCtx.fillStyle = 'rgba(148,163,184,.6)'; scCtx.fill();
     });
   });
 
   // Draw current points
   S.scalePts.forEach((p, i) => {
-    scCtx.beginPath(); scCtx.arc(p.x, p.y, 6, 0, Math.PI*2);
+    scCtx.beginPath(); scCtx.arc(p.x, p.y, 6/s, 0, Math.PI*2);
     scCtx.fillStyle = i === 0 ? '#0D9488' : '#F97316'; scCtx.fill();
-    scCtx.strokeStyle = 'white'; scCtx.lineWidth = 2; scCtx.stroke();
+    scCtx.strokeStyle = 'white'; scCtx.lineWidth = 2/s; scCtx.stroke();
   });
   if (S.scalePts.length === 2) {
     const [a, b] = S.scalePts;
     scCtx.beginPath(); scCtx.moveTo(a.x, a.y); scCtx.lineTo(b.x, b.y);
-    scCtx.strokeStyle = '#14B8A6'; scCtx.lineWidth = 2;
-    scCtx.setLineDash([6,4]); scCtx.stroke(); scCtx.setLineDash([]);
+    scCtx.strokeStyle = '#14B8A6'; scCtx.lineWidth = 2/s;
+    scCtx.setLineDash([6/s,4/s]); scCtx.stroke(); scCtx.setLineDash([]);
   }
+  scCtx.restore();
+}
+
+function scaleZoomBy(factor) {
+  scZoom.s = Math.max(0.25, Math.min(8, scZoom.s * factor));
+  const el = document.getElementById('scale-zoom-pct');
+  if (el) el.textContent = `${Math.round(scZoom.s * 100)}%`;
+  drawScale();
+}
+
+function resetScaleZoom() {
+  scZoom.s = 1;
+  const el = document.getElementById('scale-zoom-pct');
+  if (el) el.textContent = '100%';
+  drawScale();
 }
 
 function updatePtsInfo() {
   const el = document.getElementById('scale-pts-info');
   const n = S.scalePts.length;
-  if (n === 0) el.textContent = 'לחץ על נקודה 1 על הסרגל';
-  else if (n === 1) el.textContent = 'לחץ על נקודה 2 על הסרגל';
+  if (n === 0) el.textContent = 'Click point 1 on the ruler';
+  else if (n === 1) el.textContent = 'Click point 2 on the ruler';
   else {
     const dx = S.scalePts[1].x - S.scalePts[0].x, dy = S.scalePts[1].y - S.scalePts[0].y;
-    el.textContent = `${Math.round(Math.sqrt(dx*dx+dy*dy))} px — הכנס מ"מ והוסף`;
+    el.textContent = `${Math.round(Math.sqrt(dx*dx+dy*dy))} px — enter mm and add`;
   }
 }
 
 function addMeasurement() {
-  if (S.scalePts.length < 2) return alert('לחץ על 2 נקודות על הסרגל');
+  if (S.scalePts.length < 2) return alert('Click 2 points on the ruler first');
   const mm = parseFloat(document.getElementById('mm-input').value);
-  if (!mm || mm <= 0) return alert('הכנס מרחק ב-מ"מ');
+  if (!mm || mm <= 0) return alert('Enter a distance in mm');
   const [a, b] = S.scalePts;
   const px = Math.sqrt((b.x-a.x)**2 + (b.y-a.y)**2);
   const ppm = px / mm;
@@ -1074,6 +1369,7 @@ function deleteMeasurement(v, idx) {
   renderMeasurements();
   updateScaleAvg();
   drawScale();
+  persistState();
 }
 
 function renderMeasurements() {
@@ -1081,17 +1377,17 @@ function renderMeasurements() {
   if (!list) return;
   const items = measurements[S.scaleView];
   if (!items.length) {
-    list.innerHTML = '<div style="font-size:12px;color:var(--border);text-align:center;padding:16px 0;">אין מדידות עדיין</div>';
+    list.innerHTML = '<div style="font-size:12px;color:var(--border);text-align:center;padding:16px 0;">No measurements yet</div>';
     return;
   }
   list.innerHTML = `
     <table style="width:100%;border-collapse:collapse;font-size:12px;">
       <thead>
         <tr style="color:var(--muted);">
-          <th style="text-align:right;padding:3px 4px;font-weight:600;">#</th>
-          <th style="text-align:right;padding:3px 4px;font-weight:600;">px</th>
-          <th style="text-align:right;padding:3px 4px;font-weight:600;">מ"מ</th>
-          <th style="text-align:right;padding:3px 4px;font-weight:600;">px/mm</th>
+          <th style="text-align:left;padding:3px 4px;font-weight:600;">#</th>
+          <th style="text-align:left;padding:3px 4px;font-weight:600;">px</th>
+          <th style="text-align:left;padding:3px 4px;font-weight:600;">mm</th>
+          <th style="text-align:left;padding:3px 4px;font-weight:600;">px/mm</th>
           <th></th>
         </tr>
       </thead>
@@ -1132,10 +1428,15 @@ function updateScaleAvg() {
     el.textContent = a.toFixed(2); el.style.color = '#14B8A6';
   });
 
-  // Enable Next if all 3 views have at least 1 measurement
+  // Enable Next only if all 3 views have at least 1 measurement
   const allDone = ['front','side','top'].every(vv => measurements[vv].length > 0);
   const btn = document.getElementById('step4-next');
-  if (btn && allDone) { btn.disabled = false; btn.style.background = 'var(--orange)'; btn.style.color = 'white'; btn.style.cursor = 'pointer'; }
+  if (btn) {
+    btn.disabled = !allDone;
+    btn.style.background = allDone ? 'var(--orange)' : 'var(--border)';
+    btn.style.color = allDone ? 'white' : 'var(--muted)';
+    btn.style.cursor = allDone ? 'pointer' : 'not-allowed';
+  }
 }
 
 // ══════════════════════════ STEP 3: SEGMENTATION ══════════════════════════
@@ -1172,6 +1473,8 @@ function initSeg() {
     const w = Math.round(segImgEl.width * r), h = Math.round(segImgEl.height * r);
     segSrc.width = w; segSrc.height = h;
     segOut.width = w; segOut.height = h;
+    segSrc.style.width = w + 'px'; segSrc.style.height = h + 'px';
+    segOut.style.width = w + 'px'; segOut.style.height = h + 'px';
     segCtxS.drawImage(segImgEl, 0, 0, w, h);
     S.segImgData = segCtxS.getImageData(0, 0, w, h);
     // Sync slider from saved threshold BEFORE applyThreshold reads it.
@@ -1224,7 +1527,7 @@ function saveSegSettings() {
   const btn = document.getElementById('seg-save-btn');
   if (!btn) return;
   const orig = btn.textContent;
-  btn.textContent = '✓ נשמר';
+  btn.textContent = '✓ Saved';
   btn.style.background = 'rgba(74,222,128,.15)';
   btn.style.borderColor = '#4ade80';
   btn.style.color = '#4ade80';
@@ -1281,6 +1584,7 @@ function applyThreshold() {
   // Save cleaned mask per-view so contour step can use it directly
   if (!S.segMasks) S.segMasks = {};
   S.segMasks[S.segView] = { mask, W, H };
+  _updateSegMeta(S.segView, mask, W, H);
 
   _updateContourSegBadges();
 }
@@ -1326,6 +1630,246 @@ function resetZoom() {
   drawContour();
 }
 
+/* ── Floating canvas window ── */
+let _floatWin = null;
+let _floatRO  = null;
+
+function toggleFloatCanvas() {
+  if (_floatWin) { _returnContourCanvas(); return; }
+
+  const canvas = document.getElementById('contour-canvas');
+  const origWrap = document.getElementById('contour-canvas-wrap');
+  const saved = S.floatWin || {};
+
+  // Create floating window
+  const win = document.createElement('div');
+  win.id = 'contour-float-win';
+  const iw = saved.w || Math.min(window.innerWidth  * 0.7, 900);
+  const ih = saved.h || Math.min(window.innerHeight * 0.75, 680);
+  const il = saved.x ?? Math.max(0, (window.innerWidth  - iw) / 2);
+  const it = saved.y ?? Math.max(40, (window.innerHeight - ih) / 2);
+  win.style.cssText = `
+    position:fixed;left:${il}px;top:${it}px;width:${iw}px;height:${ih}px;
+    min-width:280px;min-height:200px;resize:both;overflow:hidden;
+    background:var(--surface);border:1px solid var(--teal);border-radius:12px;
+    z-index:900;display:flex;flex-direction:column;
+    box-shadow:0 24px 64px rgba(0,0,0,.85);`;
+
+  // Title bar (drag handle)
+  const bar = document.createElement('div');
+  bar.style.cssText = `
+    height:36px;background:#1e293b;border-bottom:1px solid var(--border);
+    border-radius:12px 12px 0 0;display:flex;align-items:center;padding:0 10px;
+    gap:8px;cursor:move;user-select:none;flex-shrink:0;`;
+  bar.innerHTML = `
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <line x1="3" y1="9" x2="21" y2="9"/>
+    </svg>
+    <span style="font-size:12px;color:var(--subtle);flex:1;pointer-events:none;">Contour Drawing — drag to move · resize from corner</span>
+    <button style="background:none;border:none;color:var(--subtle);cursor:pointer;font-size:18px;line-height:1;padding:0 2px;border-radius:4px;" title="Close window">✕</button>`;
+  bar.querySelector('button').addEventListener('click', _returnContourCanvas);
+
+  // Canvas container
+  const inner = document.createElement('div');
+  inner.id = 'float-canvas-inner';
+  inner.style.cssText = 'flex:1;min-height:0;display:flex;justify-content:center;align-items:center;background:var(--bg);overflow:hidden;';
+
+  // Placeholder for original wrap (keeps layout stable)
+  const ph = document.createElement('div');
+  ph.id = 'contour-canvas-placeholder';
+  ph.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;';
+  ph.textContent = 'Contour window is floating — close it to return';
+  origWrap.appendChild(ph);
+
+  inner.appendChild(canvas);
+  win.appendChild(bar);
+  win.appendChild(inner);
+  document.body.appendChild(win);
+  _floatWin = win;
+
+  // Resize observer → rebuild canvas
+  _floatRO = new ResizeObserver(() => {
+    const saved2 = S.floatWin || (S.floatWin = {});
+    saved2.w = win.offsetWidth; saved2.h = win.offsetHeight;
+    initContour();
+  });
+  _floatRO.observe(inner);
+
+  initContour();
+
+  // ── Drag logic ──
+  let drag = null;
+  const onMove = e => {
+    if (!drag) return;
+    win.style.left = Math.max(0, Math.min(e.clientX - drag.dx, window.innerWidth  - 80)) + 'px';
+    win.style.top  = Math.max(0, Math.min(e.clientY - drag.dy, window.innerHeight - 40)) + 'px';
+  };
+  const onUp = () => {
+    if (!drag) return;
+    drag = null;
+    const f = S.floatWin || (S.floatWin = {});
+    f.x = parseInt(win.style.left); f.y = parseInt(win.style.top);
+    f.w = win.offsetWidth;          f.h = win.offsetHeight;
+    persistState();
+  };
+  bar.addEventListener('mousedown', e => {
+    if (e.target.closest('button')) return;
+    drag = { dx: e.clientX - win.offsetLeft, dy: e.clientY - win.offsetTop };
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+  win._drag = { onMove, onUp };
+
+  // Update float-btn label
+  const fb = document.getElementById('float-btn');
+  if (fb) { fb.style.borderColor='var(--teal)'; fb.style.color='var(--teal)'; }
+}
+
+function _returnContourCanvas() {
+  if (!_floatWin) return;
+  const canvas = document.getElementById('contour-canvas');
+  const origWrap = document.getElementById('contour-canvas-wrap');
+  const ph = document.getElementById('contour-canvas-placeholder');
+
+  origWrap.appendChild(canvas);
+  if (ph) ph.remove();
+
+  if (_floatRO) { _floatRO.disconnect(); _floatRO = null; }
+  if (_floatWin._drag) {
+    document.removeEventListener('mousemove', _floatWin._drag.onMove);
+    document.removeEventListener('mouseup',   _floatWin._drag.onUp);
+  }
+
+  // Save final position/size
+  const f = S.floatWin || (S.floatWin = {});
+  f.x = parseInt(_floatWin.style.left); f.y = parseInt(_floatWin.style.top);
+  f.w = _floatWin.offsetWidth;          f.h = _floatWin.offsetHeight;
+  persistState();
+
+  _floatWin.remove(); _floatWin = null;
+  initContour();
+
+  const fb = document.getElementById('float-btn');
+  if (fb) { fb.style.borderColor=''; fb.style.color=''; }
+}
+
+// ── Floating Scale window (same pattern as Contour) ──────────────
+let _scaleFloatWin = null;
+let _scaleFloatRO  = null;
+
+function toggleFloatScaleCanvas() {
+  if (_scaleFloatWin) { _returnScaleCanvas(); return; }
+
+  const canvas  = document.getElementById('scale-canvas');
+  const origWrap = document.getElementById('scale-canvas-wrap');
+  const saved   = S.scaleFloatWin || {};
+
+  const win = document.createElement('div');
+  win.id = 'scale-float-win';
+  const iw = saved.w || Math.min(window.innerWidth  * 0.65, 860);
+  const ih = saved.h || Math.min(window.innerHeight * 0.70, 640);
+  const il = saved.x ?? Math.max(0, (window.innerWidth  - iw) / 2);
+  const it = saved.y ?? Math.max(40, (window.innerHeight - ih) / 2);
+  win.style.cssText = `
+    position:fixed;left:${il}px;top:${it}px;width:${iw}px;height:${ih}px;
+    min-width:280px;min-height:200px;resize:both;overflow:hidden;
+    background:var(--surface);border:1px solid var(--teal);border-radius:12px;
+    z-index:900;display:flex;flex-direction:column;
+    box-shadow:0 24px 64px rgba(0,0,0,.85);`;
+
+  const bar = document.createElement('div');
+  bar.style.cssText = `
+    height:36px;background:#1e293b;border-bottom:1px solid var(--border);
+    border-radius:12px 12px 0 0;display:flex;align-items:center;padding:0 10px;
+    gap:8px;cursor:move;user-select:none;flex-shrink:0;`;
+  bar.innerHTML = `
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2">
+      <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
+    </svg>
+    <span style="font-size:12px;color:var(--subtle);flex:1;pointer-events:none;">Scale — drag to move · resize from corner</span>
+    <button style="background:none;border:none;color:var(--subtle);cursor:pointer;font-size:18px;line-height:1;padding:0 2px;border-radius:4px;" title="Close window">✕</button>`;
+  bar.querySelector('button').addEventListener('click', _returnScaleCanvas);
+
+  const inner = document.createElement('div');
+  inner.id = 'float-scale-inner';
+  inner.style.cssText = 'flex:1;min-height:0;display:flex;justify-content:center;align-items:center;background:var(--bg);overflow:hidden;';
+
+  const ph = document.createElement('div');
+  ph.id = 'scale-canvas-placeholder';
+  ph.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;';
+  ph.textContent = 'Scale window is floating — close it to return';
+  origWrap.appendChild(ph);
+
+  inner.appendChild(canvas);
+  win.appendChild(bar);
+  win.appendChild(inner);
+  document.body.appendChild(win);
+  _scaleFloatWin = win;
+
+  _scaleFloatRO = new ResizeObserver(() => {
+    const s2 = S.scaleFloatWin || (S.scaleFloatWin = {});
+    s2.w = win.offsetWidth; s2.h = win.offsetHeight;
+    initScale();
+  });
+  _scaleFloatRO.observe(inner);
+  // ResizeObserver fires on first observation after layout — no direct initScale() needed
+
+  let drag = null;
+  const onMove = e => {
+    if (!drag) return;
+    win.style.left = Math.max(0, Math.min(e.clientX - drag.dx, window.innerWidth  - 80)) + 'px';
+    win.style.top  = Math.max(0, Math.min(e.clientY - drag.dy, window.innerHeight - 40)) + 'px';
+  };
+  const onUp = () => {
+    if (!drag) return;
+    drag = null;
+    const f = S.scaleFloatWin || (S.scaleFloatWin = {});
+    f.x = parseInt(win.style.left); f.y = parseInt(win.style.top);
+    f.w = win.offsetWidth;          f.h = win.offsetHeight;
+    persistState();
+  };
+  bar.addEventListener('mousedown', e => {
+    if (e.target.closest('button')) return;
+    drag = { dx: e.clientX - win.offsetLeft, dy: e.clientY - win.offsetTop };
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+  win._drag = { onMove, onUp };
+
+  const fb = document.getElementById('scale-float-btn');
+  if (fb) { fb.style.borderColor='var(--teal)'; fb.style.color='var(--teal-light)'; }
+}
+
+function _returnScaleCanvas() {
+  if (!_scaleFloatWin) return;
+  const canvas   = document.getElementById('scale-canvas');
+  const origWrap = document.getElementById('scale-canvas-wrap');
+  const ph       = document.getElementById('scale-canvas-placeholder');
+
+  origWrap.appendChild(canvas);
+  if (ph) ph.remove();
+
+  if (_scaleFloatRO) { _scaleFloatRO.disconnect(); _scaleFloatRO = null; }
+  if (_scaleFloatWin._drag) {
+    document.removeEventListener('mousemove', _scaleFloatWin._drag.onMove);
+    document.removeEventListener('mouseup',   _scaleFloatWin._drag.onUp);
+  }
+
+  const f = S.scaleFloatWin || (S.scaleFloatWin = {});
+  f.x = parseInt(_scaleFloatWin.style.left); f.y = parseInt(_scaleFloatWin.style.top);
+  f.w = _scaleFloatWin.offsetWidth;          f.h = _scaleFloatWin.offsetHeight;
+  persistState();
+
+  _scaleFloatWin.remove(); _scaleFloatWin = null;
+  initScale();
+
+  const fb = document.getElementById('scale-float-btn');
+  if (fb) { fb.style.borderColor=''; fb.style.color=''; }
+}
+
 function setContourView(v) {
   S.contourView = v; S.mouse = null;
   document.querySelectorAll('.contour-tab').forEach(t => {
@@ -1335,19 +1879,31 @@ function setContourView(v) {
     t.style.borderColor = a ? 'var(--teal)' : 'var(--border)';
   });
   resetZoom();
-  initContour();
+  // Ensure this view has a segmentation mask before the canvas builds
+  _ensureSegMask(v, () => {
+    initContour();
+    // Auto-detect if this view has no polygon yet
+    setTimeout(() => {
+      if (!S.polys[v]?.pts?.length) autoDetectContour();
+    }, 150);
+  });
 }
 
 // Interaction state — module-level so initContour can be called multiple times safely
 let cPanStart = null, cPanMoved = false;
 let cDragPt = null;
 let cHoverPt = -1, cHoverEdge = -1;
+let cHoverHolePt   = { hi: -1, pi: -1 };
+let cHoverHoleEdge = { hi: -1, ei: -1 };
+let cDragHolePt    = null;
 let cCtxTarget = {};
 let _cEventsAttached = false;
 
 function _cCoords(e) {
   const rc = cC.getBoundingClientRect();
-  return { sx: (e.clientX-rc.left)*(cC.width/rc.width), sy: (e.clientY-rc.top)*(cC.height/rc.height) };
+  // Canvas CSS size always matches internal size (set explicitly in buildContourImg)
+  // so no ratio scaling needed — just subtract the offset
+  return { sx: e.clientX - rc.left, sy: e.clientY - rc.top };
 }
 const DRAG_THRESH = 10;
 const PT_HIT = 12;
@@ -1375,6 +1931,33 @@ function _nearestEdge(ix, iy) {
   }
   return bestD < PT_HIT*1.5 ? best : -1;
 }
+function _nearestHolePt(ix, iy) {
+  const holes = S.holes?.[S.contourView];
+  if (!holes) return { hi:-1, pi:-1 };
+  let bestHi=-1,bestPi=-1,bestD=Infinity;
+  holes.forEach((hole,hi) => hole.forEach((p,pi) => {
+    const dx=(p.x-ix)*cZoom.s, dy=(p.y-iy)*cZoom.s;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if (d<bestD){bestD=d;bestHi=hi;bestPi=pi;}
+  }));
+  return bestD < PT_HIT ? {hi:bestHi,pi:bestPi} : {hi:-1,pi:-1};
+}
+function _nearestHoleEdge(ix, iy) {
+  const holes = S.holes?.[S.contourView];
+  if (!holes) return { hi:-1, ei:-1 };
+  let bestHi=-1,bestEi=-1,bestD=Infinity;
+  holes.forEach((hole,hi) => {
+    if (hole.length<2) return;
+    for (let ei=0;ei<hole.length;ei++) {
+      const a=hole[ei],b=hole[(ei+1)%hole.length];
+      const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+      const dx=(mx-ix)*cZoom.s,dy=(my-iy)*cZoom.s;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if (d<bestD){bestD=d;bestHi=hi;bestEi=ei;}
+    }
+  });
+  return bestD < PT_HIT*1.5 ? {hi:bestHi,ei:bestEi} : {hi:-1,ei:-1};
+}
 
 function _attachContourEvents() {
   if (_cEventsAttached) return;
@@ -1400,10 +1983,20 @@ function _attachContourEvents() {
       cCtx.beginPath(); cCtx.arc(ix,iy,8/cZoom.s,0,Math.PI*2);
       cCtx.fillStyle='rgba(251,191,36,.7)'; cCtx.fill();
       cCtx.restore();
-      document.getElementById('contour-info').textContent = `🎯 ${cGuidedSeeds.length} seed points — לחץ "הרץ זיהוי"`;
+      document.getElementById('contour-info').textContent = `🎯 ${cGuidedSeeds.length} seed points — click "Run Detection"`;
       return;
     }
     const poly = S.polys[S.contourView];
+    // Hole point / edge hit — checked before outer contour so holes are always accessible
+    const {hi:hpi, pi:hpiPi} = _nearestHolePt(ix, iy);
+    if (hpi >= 0) { cDragHolePt={hi:hpi,pi:hpiPi}; cC.style.cursor='move'; return; }
+    const {hi:hei, ei:heiEi} = _nearestHoleEdge(ix, iy);
+    if (hei >= 0) {
+      const hole=S.holes[S.contourView][hei];
+      const a=hole[heiEi],b=hole[(heiEi+1)%hole.length];
+      hole.splice(heiEi+1,0,{x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+      cDragHolePt={hi:hei,pi:heiEi+1}; cC.style.cursor='move'; drawContour(); return;
+    }
     if (poly.closed) {
       const pi = _nearestPt(ix, iy);
       if (pi >= 0) { cDragPt={idx:pi}; cC.style.cursor='move'; return; }
@@ -1435,6 +2028,12 @@ function _attachContourEvents() {
       }
       return;
     }
+    if (cDragHolePt) {
+      const { sx, sy } = _cCoords(e);
+      const { x, y } = screenToImg(sx, sy);
+      S.holes[S.contourView][cDragHolePt.hi][cDragHolePt.pi]={x,y};
+      drawContour(); return;
+    }
     if (cDragPt) {
       const { sx, sy } = _cCoords(e);
       const { x, y } = screenToImg(sx, sy);
@@ -1445,9 +2044,9 @@ function _attachContourEvents() {
       const dx=e.clientX-cPanStart.ex, dy=e.clientY-cPanStart.ey;
       if (cPanMoved||Math.abs(dx)>DRAG_THRESH/2||Math.abs(dy)>DRAG_THRESH/2) {
         cPanMoved=true;
-        const rc=cC.getBoundingClientRect();
-        cZoom.ox=cPanStart.ox+dx*(cC.width/rc.width);
-        cZoom.oy=cPanStart.oy+dy*(cC.height/rc.height);
+        // CSS size always matches internal size, so ratio is 1:1
+        cZoom.ox=cPanStart.ox+dx;
+        cZoom.oy=cPanStart.oy+dy;
         drawContour();
       }
       return;
@@ -1455,6 +2054,13 @@ function _attachContourEvents() {
     const { sx, sy } = _cCoords(e);
     const { x: ix, y: iy } = screenToImg(sx, sy);
     const poly = S.polys[S.contourView];
+    // Hole hover
+    const {hi:hHi,pi:hPi} = _nearestHolePt(ix,iy);
+    const {hi:heHi,ei:heEi} = hHi<0 ? _nearestHoleEdge(ix,iy) : {hi:-1,ei:-1};
+    const holeChanged = hHi!==cHoverHolePt.hi||hPi!==cHoverHolePt.pi||heHi!==cHoverHoleEdge.hi||heEi!==cHoverHoleEdge.ei;
+    if (holeChanged) { cHoverHolePt={hi:hHi,pi:hPi}; cHoverHoleEdge={hi:heHi,ei:heEi}; drawContour(); }
+    if (hHi>=0) { cC.style.cursor='move'; return; }
+    if (heHi>=0) { cC.style.cursor='cell'; return; }
     if (poly.closed) {
       const pi=_nearestPt(ix,iy), ei=pi<0?_nearestEdge(ix,iy):-1;
       if (pi!==cHoverPt||ei!==cHoverEdge) { cHoverPt=pi; cHoverEdge=ei; drawContour(); }
@@ -1473,6 +2079,7 @@ function _attachContourEvents() {
       } else { cRoiRect=null; drawContour(); }
       return;
     }
+    if (cDragHolePt) { cDragHolePt=null; persistState(); cC.style.cursor='grab'; return; }
     if (cDragPt) { cDragPt=null; updateContourInfo(); persistState(); cC.style.cursor='grab'; return; }
     if (e.button!==0) return;
     const wasPan=cPanMoved;
@@ -1498,14 +2105,23 @@ function _attachContourEvents() {
     const { sx, sy } = _cCoords(e);
     const { x: ix, y: iy } = screenToImg(sx, sy);
     const poly=S.polys[S.contourView];
+    const {hi:hpi,pi:hpiPi} = _nearestHolePt(ix,iy);
+    const {hi:hei,ei:heiEi} = hpi<0 ? _nearestHoleEdge(ix,iy) : {hi:-1,ei:-1};
+    if (hpi>=0 || hei>=0) {
+      cCtxTarget={pi:-1,ei:-1,x:ix,y:iy,hpi,hpiPi,hei,heiEi};
+      showHoleCtxMenu(e.clientX,e.clientY,hpi,hpiPi,hei,heiEi);
+      return;
+    }
     const pi=_nearestPt(ix,iy), ei=pi<0?_nearestEdge(ix,iy):-1;
-    cCtxTarget={pi,ei,x:ix,y:iy};
+    cCtxTarget={pi,ei,x:ix,y:iy,hpi:-1,hpiPi:-1,hei:-1,heiEi:-1};
     showCtxMenu(e.clientX,e.clientY,pi>=0,poly.pts.length>=3);
   });
 
   cC.addEventListener('mouseleave', () => {
     cPanStart=null; cPanMoved=false; S.mouse=null;
-    cHoverPt=-1; cHoverEdge=-1; drawContour();
+    cHoverPt=-1; cHoverEdge=-1;
+    cHoverHolePt={hi:-1,pi:-1}; cHoverHoleEdge={hi:-1,ei:-1};
+    drawContour();
   });
 
   cC.addEventListener('wheel', (e) => {
@@ -1519,17 +2135,34 @@ function initContour() {
   cC = document.getElementById('contour-canvas');
   cCtx = cC.getContext('2d');
   _attachContourEvents();   // no-op after first call
+  // Sync point-count select with saved preference
+  const psel = document.getElementById('pts-count-sel');
+  if (psel && S.contourTargetPts) psel.value = String(S.contourTargetPts);
   const url = S.imgs[S.contourView];
   if (!url) return;
 
   // Build composite: original image + segmentation overlay
   const buildContourImg = (origImg) => {
-    const maxW = cC.parentElement.offsetWidth - 2;
-    const maxH = Math.max(window.innerHeight - 280, 400);
-    const r = Math.min(maxW/origImg.width, maxH/origImg.height, 1);
+    const wrap = cC.parentElement;
+    const maxW = Math.max(wrap.clientWidth  - 2, 200);
+    const maxH = Math.max(wrap.clientHeight - 2, 300);
+    const r = Math.min(maxW/origImg.width, maxH/origImg.height);
     const w = Math.round(origImg.width*r), h = Math.round(origImg.height*r);
     cC.width=w; cC.height=h;
+    // Keep CSS display size in sync with internal size to prevent coordinate mismatch
+    cC.style.width  = w + 'px';
+    cC.style.height = h + 'px';
+
+    // Scale existing polygon points proportionally when canvas size changes
     if (!S.polyCanvasSize) S.polyCanvasSize={};
+    const oldSz = S.polyCanvasSize[S.contourView];
+    if (oldSz && oldSz.w > 0 && (oldSz.w !== w || oldSz.h !== h)) {
+      const sx = w / oldSz.w, sy = h / oldSz.h;
+      const poly = S.polys[S.contourView];
+      if (poly?.pts?.length) poly.pts = poly.pts.map(p=>({x:p.x*sx,y:p.y*sy}));
+      const holes = S.holes?.[S.contourView];
+      if (holes) S.holes[S.contourView] = holes.map(h=>h.map(p=>({x:p.x*sx,y:p.y*sy})));
+    }
     S.polyCanvasSize[S.contourView]={w,h};
 
     const tmpC=document.createElement('canvas'); tmpC.width=w; tmpC.height=h;
@@ -1568,10 +2201,35 @@ function initContour() {
       }
     }
 
-    cImg=new Image(); cImg.onload=()=>drawContour(); cImg.src=tmpC.toDataURL();
+    cImg = new Image();
+    cImg.onload = () => {
+      // Auto-zoom to object the first time a view is opened (no polygon, no user pan)
+      const sm = S.segMeta?.[S.contourView];
+      if (sm?.bbox && cZoom.s === 1 && cZoom.ox === 0 && cZoom.oy === 0 && !S.polys[S.contourView].pts.length) {
+        _autoZoomToSegBbox(sm.bbox, sm.W, sm.H, w, h);
+      }
+      drawContour();
+    };
+    cImg.src = tmpC.toDataURL();
   };
 
   const orig=new Image(); orig.onload=()=>buildContourImg(orig); orig.src=url;
+}
+
+// Zooms the contour canvas so the object region fills it with a small margin.
+// bb is in mask pixel space; canvasW/H is the canvas internal size.
+function _autoZoomToSegBbox(bb, maskW, maskH, canvasW, canvasH) {
+  const scX = canvasW / maskW, scY = canvasH / maskH;
+  const x0 = bb.minX * scX, y0 = bb.minY * scY;
+  const x1 = bb.maxX * scX, y1 = bb.maxY * scY;
+  const pad = 0.12;
+  const objW = x1 - x0, objH = y1 - y0;
+  const fitS = Math.min(canvasW / (objW * (1 + 2*pad)), canvasH / (objH * (1 + 2*pad)), 4);
+  cZoom.s = fitS;
+  cZoom.ox = canvasW / 2 - fitS * (x0 + x1) / 2;
+  cZoom.oy = canvasH / 2 - fitS * (y0 + y1) / 2;
+  const el = document.getElementById('zoom-pct');
+  if (el) el.textContent = `${Math.round(fitS * 100)}%`;
 }
 
 function drawContour() {
@@ -1598,15 +2256,31 @@ function drawContour() {
     } else if (S.mouse) cCtx.lineTo(S.mouse.x, S.mouse.y);
     cCtx.strokeStyle = '#0D9488'; cCtx.lineWidth = lw; cCtx.stroke();
 
-    // Holes (if detected)
+    // Holes (editable — dots + hover)
     const holes = S.holes?.[S.contourView];
-    if (holes) holes.forEach(hole => {
+    if (holes) holes.forEach((hole, hi) => {
       if (hole.length < 3) return;
+      // Outline + fill
       cCtx.beginPath(); cCtx.moveTo(hole[0].x, hole[0].y);
       hole.slice(1).forEach(p => cCtx.lineTo(p.x, p.y));
       cCtx.closePath();
-      cCtx.fillStyle = 'rgba(239,68,68,.25)'; cCtx.fill();
+      cCtx.fillStyle = 'rgba(239,68,68,.18)'; cCtx.fill();
       cCtx.strokeStyle = '#EF4444'; cCtx.lineWidth = lw*0.8; cCtx.stroke();
+      // Edge midpoint hint
+      if (cHoverHoleEdge.hi === hi && cHoverHoleEdge.ei >= 0) {
+        const ei = cHoverHoleEdge.ei;
+        const a=hole[ei], b=hole[(ei+1)%hole.length];
+        cCtx.beginPath(); cCtx.arc((a.x+b.x)/2,(a.y+b.y)/2, hr, 0, Math.PI*2);
+        cCtx.fillStyle='rgba(251,191,36,.8)'; cCtx.fill();
+        cCtx.strokeStyle='white'; cCtx.lineWidth=lw*.8; cCtx.stroke();
+      }
+      // Points
+      hole.forEach((p, pi) => {
+        const isHov = cHoverHolePt.hi===hi && cHoverHolePt.pi===pi;
+        cCtx.beginPath(); cCtx.arc(p.x, p.y, isHov ? dr*1.5 : dr, 0, Math.PI*2);
+        cCtx.fillStyle = isHov ? '#f59e0b' : '#EF4444'; cCtx.fill();
+        cCtx.strokeStyle = 'white'; cCtx.lineWidth = lw*.8; cCtx.stroke();
+      });
     });
 
     // Edge midpoint hint when hovering edge
@@ -1660,18 +2334,18 @@ function showCtxMenu(cx, cy, hasPt, canDel) {
   const btn = (label, fn, danger=false) => {
     const b = document.createElement('button');
     b.textContent = label;
-    b.style.cssText = `display:block;width:100%;text-align:right;padding:7px 12px;background:none;border:none;color:${danger?'#f87171':'#e2e8f0'};font-size:13px;cursor:pointer;border-radius:7px;`;
+    b.style.cssText = `display:block;width:100%;text-align:left;padding:7px 12px;background:none;border:none;color:${danger?'#f87171':'#e2e8f0'};font-size:13px;cursor:pointer;border-radius:7px;`;
     b.onmouseenter = () => b.style.background = danger ? 'rgba(248,113,113,.15)' : 'rgba(255,255,255,.08)';
     b.onmouseleave = () => b.style.background = 'none';
     b.onclick = () => { fn(); hideCtxMenu(); };
     return b;
   };
   m.innerHTML = '';
-  if (hasPt && canDel) m.appendChild(btn('🗑 מחק נקודה', ctxDeletePt, true));
-  if (!hasPt) m.appendChild(btn('➕ הוסף כאן', ctxInsertEdgePt));
-  m.appendChild(btn('✨ החלק מתאר', smoothContour));
-  m.appendChild(btn('🔄 פתח מחדש', () => { S.polys[S.contourView].closed=false; cHoverPt=-1; drawContour(); updateContourInfo(); }));
-  m.appendChild(btn('🗑 נקה הכל', clearContour, true));
+  if (hasPt && canDel) m.appendChild(btn('🗑 Delete Point', ctxDeletePt, true));
+  if (!hasPt) m.appendChild(btn('➕ Add Here', ctxInsertEdgePt));
+  m.appendChild(btn('✨ Smooth Contour', smoothContour));
+  m.appendChild(btn('🔄 Reopen', () => { S.polys[S.contourView].closed=false; cHoverPt=-1; drawContour(); updateContourInfo(); }));
+  m.appendChild(btn('🗑 Clear All', clearContour, true));
   m.style.display = 'block';
   const mw = 160, mh = 200;
   m.style.left = Math.min(cx, window.innerWidth-mw-8) + 'px';
@@ -1695,6 +2369,51 @@ function ctxInsertEdgePt() {
     poly.pts.push({ x: cCtxTarget.x, y: cCtxTarget.y });
   }
   drawContour(); updateContourInfo(); persistState();
+}
+
+// ── Hole context menu ─────────────────────────────────────────
+function showHoleCtxMenu(cx, cy, hpi, hpiPi, hei, heiEi) {
+  let m = document.getElementById('c-ctx');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'c-ctx';
+    m.style.cssText = 'position:fixed;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:4px;z-index:9999;display:none;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,.5);';
+    document.body.appendChild(m);
+    document.addEventListener('mousedown', e => { if (!m.contains(e.target)) hideCtxMenu(); });
+  }
+  const btn = (label, fn, danger=false) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.style.cssText = `display:block;width:100%;text-align:left;padding:7px 12px;background:none;border:none;color:${danger?'#f87171':'#e2e8f0'};font-size:13px;cursor:pointer;border-radius:7px;`;
+    b.onmouseenter = () => b.style.background = danger ? 'rgba(248,113,113,.15)' : 'rgba(255,255,255,.08)';
+    b.onmouseleave = () => b.style.background = 'none';
+    b.onclick = () => { fn(); hideCtxMenu(); };
+    return b;
+  };
+  m.innerHTML = '';
+  const holes = S.holes[S.contourView];
+  if (hpi >= 0 && holes[hpi].length > 3) {
+    m.appendChild(btn('🗑 Delete Point', () => {
+      holes[hpi].splice(hpiPi, 1);
+      cHoverHolePt={hi:-1,pi:-1}; drawContour(); persistState();
+    }, true));
+  }
+  if (hei >= 0) {
+    m.appendChild(btn('➕ Add Point Here', () => {
+      const hole=holes[hei], a=hole[heiEi], b=hole[(heiEi+1)%hole.length];
+      hole.splice(heiEi+1,0,{x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+      drawContour(); persistState();
+    }));
+  }
+  const delHi = hpi >= 0 ? hpi : hei;
+  m.appendChild(btn('🗑 Delete Hole', () => {
+    S.holes[S.contourView].splice(delHi, 1);
+    cHoverHolePt={hi:-1,pi:-1}; cHoverHoleEdge={hi:-1,ei:-1};
+    drawContour(); persistState();
+  }, true));
+  m.style.display = 'block';
+  m.style.left = Math.min(cx, window.innerWidth-180-8) + 'px';
+  m.style.top  = Math.min(cy, window.innerHeight-160-8) + 'px';
 }
 
 // ── Contour smoothing (Gaussian smooth on polygon vertices) ──
@@ -1747,7 +2466,7 @@ function toggleBgSampleMode() {
   if (cBgSampleMode) {
     cC.style.cursor = 'crosshair';
     btn.style.borderColor='#F59E0B'; btn.style.background='rgba(245,158,11,.15)'; btn.style.color='#FCD34D';
-    document.getElementById('contour-info').textContent = '🔬 לחץ על אזור רקע — המתאר יסיר אותו';
+    document.getElementById('contour-info').textContent = '🔬 Click on background area — contour will exclude it';
   } else {
     _refreshBgSampleBtn();
     if (cC) cC.style.cursor = S.polys[S.contourView]?.closed ? 'grab' : 'crosshair';
@@ -1758,7 +2477,7 @@ function _refreshBgSampleBtn() {
   const btn = document.getElementById('bgsample-btn');
   if (!btn) return;
   const n = S.bgSamples?.[S.contourView]?.length ?? 0;
-  btn.textContent = n > 0 ? `🔬 רקע ×${n}` : '🔬 רקע';
+  btn.textContent = n > 0 ? `🔬 Background ×${n}` : '🔬 Background';
   const active = n > 0;
   btn.style.borderColor = active ? '#F59E0B' : 'var(--border)';
   btn.style.background  = active ? 'rgba(245,158,11,.1)' : 'transparent';
@@ -1850,7 +2569,7 @@ function toggleRoiMode() {
   cRoiMode = true; cRoiRect = null; cRoiDrag = null;
   const btn = document.getElementById('roi-btn');
   if (btn) { btn.style.borderColor='#F59E0B'; btn.style.background='rgba(245,158,11,.15)'; btn.style.color='#FCD34D'; }
-  document.getElementById('contour-info').textContent = '□ גרור ריבוע מעל האובייקט ← זיהוי יפעל רק בתוכו';
+  document.getElementById('contour-info').textContent = '□ Drag a rectangle over the object — detection will apply only inside';
   if (cC) cC.style.cursor = 'crosshair';
 }
 
@@ -1861,11 +2580,95 @@ function _exitRoiMode() {
   if (cC) cC.style.cursor = S.polys[S.contourView]?.closed ? 'grab' : 'crosshair';
 }
 
+// Silhouette-based ROI contour:
+// 1. Crop the binary silhouette mask to the drawn rectangle
+// 2. From each side of the rectangle, march inward until a white (object) pixel is found
+//    — this shrinks the bounding box to the tightest fit around the object
+// 3. Trace the silhouette boundary inside that tight box → the polygon
+function _roiContourFromSilhouette(rect, mask, maskW, maskH) {
+  const view = S.contourView;
+
+  // Convert drawn rectangle from canvas coords to mask coords
+  const scX = maskW / (cC?.width || maskW), scY = maskH / (cC?.height || maskH);
+  let x1 = Math.max(0,      Math.round(rect.x1 * scX));
+  let y1 = Math.max(0,      Math.round(rect.y1 * scY));
+  let x2 = Math.min(maskW,  Math.round(rect.x2 * scX));
+  let y2 = Math.min(maskH,  Math.round(rect.y2 * scY));
+  if (x2 - x1 < 4 || y2 - y1 < 4) { cRoiRect = null; drawContour(); return; }
+
+  // March each edge inward until it touches a white pixel in the silhouette
+  outer: for (let y = y1; y < y2; y++) { for (let x = x1; x < x2; x++) if (mask[y*maskW+x]) { y1=y; break outer; } }
+  outer: for (let y = y2-1; y >= y1; y--) { for (let x = x1; x < x2; x++) if (mask[y*maskW+x]) { y2=y+1; break outer; } }
+  outer: for (let x = x1; x < x2; x++) { for (let y = y1; y < y2; y++) if (mask[y*maskW+x]) { x1=x; break outer; } }
+  outer: for (let x = x2-1; x >= x1; x--) { for (let y = y1; y < y2; y++) if (mask[y*maskW+x]) { x2=x+1; break outer; } }
+
+  const rW = x2 - x1, rH = y2 - y1;
+  if (rW < 4 || rH < 4) { cRoiRect = null; drawContour(); alert('No object found in selected area'); return; }
+
+  // Crop silhouette to the shrunk box
+  const roi = new Uint8ClampedArray(rW * rH);
+  for (let y = 0; y < rH; y++) for (let x = 0; x < rW; x++)
+    roi[y*rW+x] = mask[(y+y1)*maskW + (x+x1)];
+
+  // Remove isolated noise blobs before tracing
+  const cleaned = _removeSmallBlobs(roi, rW, rH, 0.05);
+
+  // Find dominant blob and run Suzuki-Abe (outer + holes)
+  const blob = findLargestBlob(cleaned, rW, rH);
+  if (!blob || blob.length < 20) { cRoiRect = null; drawContour(); alert('No object found in selected area'); return; }
+  const blobMask = new Uint8ClampedArray(rW * rH);
+  blob.forEach(i => blobMask[i] = 255);
+
+  // Suzuki-Abe: outer contour + topologically-correct holes
+  const allContoursR = _suzukiAbe(blobMask, rW, rH);
+  const outersR = allContoursR.filter(c => !c.isHole && c.pts.length >= 4);
+  if (!outersR.length) { cRoiRect = null; drawContour(); alert('Could not detect contour'); return; }
+  const outerPtsR = outersR.reduce((a, b) => b.pts.length > a.pts.length ? b : a).pts;
+
+  const step = Math.max(1, Math.floor(outerPtsR.length / 2500));
+  const sub = outerPtsR.filter((_, i) => i % step === 0);
+  const simplified = douglasPeucker(sub, 0.4);
+
+  // Map back from mask-crop space → canvas space
+  const toCanvasX = cC ? cC.width  / maskW : 1;
+  const toCanvasY = cC ? cC.height / maskH : 1;
+  S.polys[view] = {
+    pts: simplified.map(p => ({ x: (p.x + x1) * toCanvasX, y: (p.y + y1) * toCanvasY })),
+    closed: true,
+  };
+
+  // Holes: filter by area — spurious edge-holes have ~0 enclosed area
+  if (!S.holes) S.holes = {};
+  const minHR = Math.max(30, blob.length * 0.001);
+  S.holes[view] = allContoursR
+    .filter(c => c.isHole && c.pts.length >= 4 && _polyArea2D(c.pts) >= minHR)
+    .map(c => {
+      const hs = Math.max(1, Math.floor(c.pts.length / 1000));
+      const hsimp = douglasPeucker(c.pts.filter((_, i) => i % hs === 0), 0.4);
+      return hsimp.map(p => ({ x: (p.x + x1) * toCanvasX, y: (p.y + y1) * toCanvasY }));
+    })
+    .filter(h => h.length >= 3);
+
+  _applyContourTargetPts();
+  cRoiRect = null;
+  drawContour(); updateContourInfo(); persistState();
+}
+
 function autoDetectContourInROI(rect) {
   const view = S.contourView;
   const url = S.imgs[view];
   if (!url) return;
-  document.getElementById('contour-info').textContent = '⏳ מחפש מתאר בתחום שסומן…';
+  document.getElementById('contour-info').textContent = '⏳ Searching for contour in selected area…';
+
+  // ── PATH A: silhouette mask already computed in step 2 ──
+  // Each side of the drawn rectangle marches inward through the mask until it hits
+  // a white pixel (object boundary), then the silhouette boundary is traced.
+  const savedSeg = S.segMasks?.[view];
+  if (savedSeg) {
+    _roiContourFromSilhouette(rect, savedSeg.mask, savedSeg.W, savedSeg.H);
+    return;
+  }
+  // ── PATH B: no silhouette yet — fall back to Canny on original image ──
 
   const img = new Image();
   img.onload = () => {
@@ -1931,19 +2734,22 @@ function autoDetectContourInROI(rect) {
     }
 
     const blob=findLargestBlob(obj,rW,rH);
-    if (!blob||blob.length<30) { cRoiRect=null; drawContour(); alert('לא נמצא אובייקט בתחום שסומן'); return; }
+    if (!blob||blob.length<30) { cRoiRect=null; drawContour(); alert('No object found in selected area'); return; }
     const blobMask=new Uint8ClampedArray(rW*rH);
     blob.forEach(i=>blobMask[i]=255);
-    const traced=mooreBoundaryTraceMask(blobMask,rW,rH);
-    if (!traced||traced.length<4) { cRoiRect=null; drawContour(); alert('לא ניתן לזהות מתאר'); return; }
 
-    const step2=Math.max(1,Math.floor(traced.length/2500));
-    const sub2=traced.filter((_,i)=>i%step2===0);
+    // Suzuki-Abe: outer contour + topologically-correct holes
+    const allContoursC=_suzukiAbe(blobMask,rW,rH);
+    const outersC=allContoursC.filter(c=>!c.isHole&&c.pts.length>=4);
+    if (!outersC.length) { cRoiRect=null; drawContour(); alert('Could not detect contour'); return; }
+    const outerPtsC=outersC.reduce((a,b)=>b.pts.length>a.pts.length?b:a).pts;
+
+    const step2=Math.max(1,Math.floor(outerPtsC.length/2500));
+    const sub2=outerPtsC.filter((_,i)=>i%step2===0);
     const simplified=douglasPeucker(sub2, 0.4);
 
     // Shift polygon back to full-image canvas coords
     const scaleX=cC?cC.width/W:1, scaleY=cC?cC.height/H:1;
-    // Clamp each point to ROI bounds before scaling — guarantees no point escapes the rectangle
     S.polys[view]={
       pts: simplified.map(p=>({
         x: (Math.max(0,Math.min(rW,p.x))+x1)*scaleX,
@@ -1951,6 +2757,20 @@ function autoDetectContourInROI(rect) {
       })),
       closed: true
     };
+
+    // Holes: filter by area — spurious edge-holes have ~0 enclosed area
+    if (!S.holes) S.holes={};
+    const minHA=Math.max(30, blob.length*0.001);
+    S.holes[view]=allContoursC
+      .filter(c=>c.isHole&&c.pts.length>=4&&_polyArea2D(c.pts)>=minHA)
+      .map(c=>{
+        const hs=Math.max(1,Math.floor(c.pts.length/1000));
+        const hsimp=douglasPeucker(c.pts.filter((_,i)=>i%hs===0),0.4);
+        return hsimp.map(p=>({x:(Math.max(0,Math.min(rW,p.x))+x1)*scaleX,y:(Math.max(0,Math.min(rH,p.y))+y1)*scaleY}));
+      })
+      .filter(h=>h.length>=3);
+
+    _applyContourTargetPts();
     cRoiRect=null;
     drawContour(); updateContourInfo(); persistState();
   };
@@ -1971,16 +2791,16 @@ function toggleGuidedMode() {
   }
   // Confirm if existing contour would be lost
   const existing = S.polys[S.contourView];
-  if (existing.pts.length > 0 && !confirm('מצב Guided ימחק את המתאר הנוכחי. להמשיך?')) return;
+  if (existing.pts.length > 0 && !confirm('Guided mode will clear the current contour. Continue?')) return;
   cGuidedSeeds = [];
   S.polys[S.contourView] = { pts:[], closed:false };
   const btn = document.getElementById('guided-btn');
   if (btn) { btn.style.background='rgba(13,148,136,.25)'; btn.style.borderColor='var(--teal)'; }
-  document.getElementById('contour-info').textContent = '🎯 לחץ על מרכז האובייקט להוספת seed point. לחץ שוב על "🎯 Guided" לביטול.';
+  document.getElementById('contour-info').textContent = '🎯 Click on the object center to add a seed point. Click "🎯 Guided" again to cancel.';
   cC.dataset.guided = '1';
 }
 function runGuidedContour() {
-  if (!cGuidedSeeds.length) return alert('הוסף seed point קודם (לחץ על האובייקט)');
+  if (!cGuidedSeeds.length) return alert('Add a seed point first (click on the object)');
   const url = S.imgs[S.contourView];
   if (!url) return;
   const tmpC = document.createElement('canvas'), tmpCtx = tmpC.getContext('2d');
@@ -2024,7 +2844,7 @@ function runGuidedContour() {
 
     // Trace boundary
     const traced = mooreBoundaryTraceMask(visited, W, H);
-    if (!traced || traced.length < 4) { alert('לא הצלחתי למצוא מתאר — נסה seed point אחר'); return; }
+    if (!traced || traced.length < 4) { alert('Could not find a contour — try a different seed point'); return; }
     const simplified = douglasPeucker(traced, 2);
     S.polys[S.contourView] = { pts: simplified, closed: true };
     cGuidedSeeds = []; delete cC.dataset.guided;
@@ -2074,7 +2894,7 @@ function computeEdgeEnergy() {
 
 function runSnake() {
   const poly = S.polys[S.contourView];
-  if (!poly.closed || poly.pts.length < 4) return alert('סגור את המתאר קודם');
+  if (!poly.closed || poly.pts.length < 4) return alert('Close the contour first');
 
   const W = cC.width, H = cC.height;
   const energy = computeEdgeEnergy();
@@ -2248,7 +3068,7 @@ function _rasterizePoly(pts, SIZE=192) {
 function computeShapeDescriptors() {
   const view=vecView;
   const poly=S.polys?.[view];
-  if (!poly?.closed||poly.pts.length<5) { alert('אין מתאר סגור בתצוגה זו'); return; }
+  if (!poly?.closed||poly.pts.length<5) { alert('No closed contour in this view'); return; }
   const pts=poly.pts;
 
   // Rasterize → raw moments
@@ -2328,8 +3148,8 @@ function _displayShapeDesc({hu,ecc,elongation,orientRad,circularity,solidity,con
   const c=document.getElementById('vec-canvas');
   const dScale=c?c.width/srcW:1;
 
-  const fmtPx=(px)=>ppm?`${(px/dScale/ppm).toFixed(1)} מ"מ`:`${Math.round(px/dScale)} px`;
-  const fmtPx2=(px2)=>ppm?`${(px2/dScale/dScale/(ppm*ppm)).toFixed(1)} מ"מ²`:`${Math.round(px2/(dScale*dScale))} px²`;
+  const fmtPx=(px)=>ppm?`${(px/dScale/ppm).toFixed(1)} mm`:`${Math.round(px/dScale)} px`;
+  const fmtPx2=(px2)=>ppm?`${(px2/dScale/dScale/(ppm*ppm)).toFixed(1)} mm²`:`${Math.round(px2/(dScale*dScale))} px²`;
 
   // Log-scale Hu for display (standard in literature)
   const huStr=hu.map((v,i)=>{
@@ -2340,23 +3160,23 @@ function _displayShapeDesc({hu,ecc,elongation,orientRad,circularity,solidity,con
   el.innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;margin-bottom:8px;">
       ${[
-        ['שטח',    fmtPx2(polyArea)],
-        ['היקף',   fmtPx(polyPerim)],
-        ['סגליות', circularity.toFixed(3)],
-        ['סולידיות',solidity.toFixed(3)],
-        ['קמירות', convexity.toFixed(3)],
-        ['אקסצ.',  ecc.toFixed(3)],
-        ['אלונג.', elongation.toFixed(2)],
-        ['זוית',   `${(orientRad*180/Math.PI).toFixed(1)}°`],
-        ['χ Euler',`${euler} (${holes} חורים)`],
-        ['Hull',   fmtPx2(hullArea)],
+        ['Area',      fmtPx2(polyArea)],
+        ['Perimeter', fmtPx(polyPerim)],
+        ['Circularity', circularity.toFixed(3)],
+        ['Solidity',  solidity.toFixed(3)],
+        ['Convexity', convexity.toFixed(3)],
+        ['Eccentr.',  ecc.toFixed(3)],
+        ['Elongation',elongation.toFixed(2)],
+        ['Angle',     `${(orientRad*180/Math.PI).toFixed(1)}°`],
+        ['χ Euler',   `${euler} (${holes} holes)`],
+        ['Hull',      fmtPx2(hullArea)],
       ].map(([k,v])=>`
         <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--border);">
           <span style="color:var(--muted);font-size:10px;">${k}</span>
           <span style="color:var(--text);font-size:10px;font-family:'Fira Code',monospace;">${v}</span>
         </div>`).join('')}
     </div>
-    <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">מומנטי Hu (log scale, אינווריאנטיים לסיבוב/גודל):</div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Hu moments (log scale, rotation/scale invariant):</div>
     <div style="font-size:10px;font-family:'Fira Code',monospace;display:flex;flex-wrap:wrap;gap:4px;">${huStr}</div>`;
 
   const sigCanvas=document.getElementById('radial-sig-canvas');
@@ -2447,8 +3267,8 @@ function _updateCalBgMsg() {
   const el = document.getElementById('cal-bg-msg');
   if (!el) return;
   const n = calBgCorners.length;
-  if (n < 4) el.textContent = `לחץ פינה ${n+1}/4: ${_CORNER_LABELS[n]}`;
-  else el.textContent = 'מחשב חיסור רקע…';
+  if (n < 4) el.textContent = `Click corner ${n+1}/4: ${_CORNER_LABELS[n]}`;
+  else el.textContent = 'Computing background subtraction…';
 }
 
 function _calBgClick(e) {
@@ -2633,6 +3453,7 @@ function runCalBgSubtract() {
   const mask = new Uint8ClampedArray(PW*PH);
   for (let i=0;i<PW*PH;i++) mask[i]=out.data[i*4]>128?255:0;
   S.segMasks[S.segView]={mask,W:PW,H:PH};
+  _updateSegMeta(S.segView, mask, PW, PH);
   _updateContourSegBadges();
 
   // Also extract scale from homography: pixels per mm
@@ -2642,11 +3463,10 @@ function runCalBgSubtract() {
   if (ppm>0.1) {
     if (!S.scale) S.scale={};
     S.scale[S.segView]=ppm;
-    console.log(`כיול: ${ppm.toFixed(2)} px/mm`);
+    console.log(`Calibration: ${ppm.toFixed(2)} px/mm`);
   }
 
   calBgCancel();
-  document.getElementById('cal-bg-bar').style.display='none';
 }
 
 // ══════════════════════════ GMM COLOR SEGMENTATION ══════════════════════════
@@ -2719,7 +3539,7 @@ function _cqSelfIntersect(p) {
   return false;
 }
 function scoreContourSimple(pts) {
-  if (!pts || pts.length < 3) return { score: 0, label: 'בעיה', color: '#f87171', issues: ['אין נקודות'] };
+  if (!pts || pts.length < 3) return { score: 0, label: 'Error', color: '#f87171', issues: ['No points'] };
   const area  = _cqArea(pts);
   const perim = _cqPerim(pts);
   const circ  = (4*Math.PI*area) / (perim*perim+1e-6);
@@ -2744,35 +3564,67 @@ function scoreContourSimple(pts) {
 
   const issues=[];
   let score=100;
-  if (pts.length<4)       { score-=30; issues.push('מעט נקודות'); }
-  if (area<200)           { score-=35; issues.push('אובייקט קטן'); }
-  if (selfX)              { score-=50; issues.push('חיתוך עצמי'); }
-  if (circ<0.05)          { score-=20; issues.push('צורה לא סגורה'); }
-  if (convexity<0.6)      { score-=15; issues.push('קמירות נמוכה'); }
-  if (smoothness<0.4)     { score-=10; issues.push('קצוות חדים'); }
+  if (pts.length<4)       { score-=30; issues.push('few points'); }
+  if (area<200)           { score-=35; issues.push('small object'); }
+  if (selfX)              { score-=50; issues.push('self-intersection'); }
+  if (circ<0.05)          { score-=20; issues.push('not closed'); }
+  if (convexity<0.6)      { score-=15; issues.push('low convexity'); }
+  if (smoothness<0.4)     { score-=10; issues.push('sharp edges'); }
 
   score=Math.max(0,Math.min(100,Math.round(score)));
-  const label=score>=80?'מעולה':score>=60?'טוב':score>=40?'צריך שיפור':'בעיה';
+  const label=score>=80?'Excellent':score>=60?'Good':score>=40?'Needs work':'Error';
   const color=score>=80?'#4ade80':score>=60?'var(--teal-light)':score>=40?'#fbbf24':'#f87171';
   return { score, label, color, issues };
 }
 
 function updateContourInfo() {
   const poly = S.polys[S.contourView];
+  const v = S.contourView;
   const el = document.getElementById('contour-info');
   if (!poly.closed) {
-    el.textContent = poly.pts.length ? `${poly.pts.length} נקודות` : '';
+    el.textContent = poly.pts.length ? `${poly.pts.length} points` : '';
     el.style.color = 'var(--muted)';
     return;
   }
+
   const bbox = _cqBbox(poly.pts);
+  S.contourBbox[v] = { minX: bbox.minX, minY: bbox.minY, maxX: bbox.minX + bbox.w, maxY: bbox.minY + bbox.h };
+
+  // ── Area cross-validation against segmentation silhouette ──
+  const areaPx  = _cqArea(poly.pts);
+  const perimPx = _cqPerim(poly.pts);
+  const sm = S.segMeta?.[v];
+  let areaRatio = null;
+  if (sm?.area && cC) {
+    // Convert silhouette pixel count (mask space) to canvas-pixel area for comparison
+    const maskToCanvasSq = (cC.width / sm.W) * (cC.height / sm.H);
+    const expectedPx = sm.area * maskToCanvasSq;
+    areaRatio = areaPx / expectedPx;
+  }
+
+  // Store everything so downstream steps (dimensions, layout) can use it
+  S.contourInfo[v] = { areaPx, perimPx, areaRatio };
+
+  // Compose area-match badge
+  let areaBadge = '';
+  if (areaRatio !== null) {
+    const pct = Math.round(areaRatio * 100);
+    if (areaRatio > 1.20)
+      areaBadge = ` &nbsp;·&nbsp; <span style="color:#f87171;font-weight:600;" title="Contour larger than silhouette — background may be included">⚠ area ${pct}%</span>`;
+    else if (areaRatio < 0.80)
+      areaBadge = ` &nbsp;·&nbsp; <span style="color:#fbbf24;font-weight:600;" title="Contour smaller than silhouette — part of object may be missing">⚠ area ${pct}%</span>`;
+    else
+      areaBadge = ` &nbsp;·&nbsp; <span style="color:#4ade80;font-size:11px;">✓ area ${pct}%</span>`;
+  }
+
   const q = scoreContourSimple(poly.pts);
-  const modeMap = {checkerboard:'רשת ✓', otsu:'Otsu ✓', canny:'Canny'};
-  const modeTag = S.lastMode?.[S.contourView];
+  const modeMap = { checkerboard:'Grid ✓', otsu:'Otsu ✓', canny:'Canny' };
+  const modeTag = S.lastMode?.[v];
   const modeStr = modeTag ? ` &nbsp;·&nbsp; <span style="color:#94a3b8;font-size:11px;">${modeMap[modeTag]||modeTag}</span>` : '';
-  const dilLvl = S.dilScale?.[S.contourView]||1;
-  const dilStr = dilLvl>1 ? ` &nbsp;·&nbsp; <span style="color:#67e8f9;font-size:11px;">דייק ×${Math.round((dilLvl-1)/0.6)}</span>` : '';
-  el.innerHTML = `✓ מתאר סגור &nbsp;·&nbsp; ${poly.pts.length} נקודות &nbsp;·&nbsp; <span style="color:${q.color};font-weight:600;">${q.label} (${q.score}%)</span>${modeStr}${dilStr} &nbsp;·&nbsp; ${Math.round(bbox.w)}×${Math.round(bbox.h)} px`;
+  const dilLvl = S.dilScale?.[v] || 1;
+  const dilStr = dilLvl > 1 ? ` &nbsp;·&nbsp; <span style="color:#67e8f9;font-size:11px;">Refine ×${Math.round((dilLvl-1)/0.6)}</span>` : '';
+
+  el.innerHTML = `✓ Closed contour &nbsp;·&nbsp; ${poly.pts.length} points &nbsp;·&nbsp; <span style="color:${q.color};font-weight:600;">${q.label} (${q.score}%)</span>${modeStr}${dilStr} &nbsp;·&nbsp; ${Math.round(bbox.w)}×${Math.round(bbox.h)} px${areaBadge}`;
   el.style.color = 'var(--text)';
 }
 
@@ -2789,7 +3641,7 @@ function clearContour() {
   if (S.lastMode) delete S.lastMode[view];
   if (S.bgSamples) delete S.bgSamples[view];
   const btn = document.getElementById('refine-btn');
-  if (btn) btn.textContent = '🎯 דייק';
+  if (btn) btn.textContent = '🎯 Refine';
   if (cC?.dataset?.guided) { delete cC.dataset.guided; cGuidedSeeds = []; }
   const guidedBtn = document.getElementById('guided-btn');
   if (guidedBtn) { guidedBtn.style.background=''; guidedBtn.style.borderColor='var(--border)'; }
@@ -3212,6 +4064,91 @@ function findLargestBlob(mask, W, H) {
   }
   return best;
 }
+// ── Suzuki-Abe Border Following (CVGIP 30:32-46, 1985) ──────────────────────
+// Single scan finds outer contours + hole contours with topology.
+// Input:  mask Uint8Array/Uint8ClampedArray W×H (nonzero = object)
+// Output: Array of { pts:[{x,y},...], isHole:bool }
+function _suzukiAbe(mask, W, H) {
+  const W2 = W + 2, H2 = H + 2;
+  const F = new Int32Array(W2 * H2);
+  for (let r = 0; r < H; r++)
+    for (let c = 0; c < W; c++)
+      F[(r+1)*W2+(c+1)] = mask[r*W+c] ? 1 : 0;
+
+  // 8-neighbor CCW order (image-Y-down): E NE N NW W SW S SE
+  const DR = [0,-1,-1,-1, 0, 1, 1, 1];
+  const DC = [1, 1, 0,-1,-1,-1, 0, 1];
+  const dirOf = (dr, dc) => { for (let k=0;k<8;k++) if(DR[k]===dr&&DC[k]===dc) return k; return 0; };
+
+  const contours = [];
+  let NBD = 1;
+
+  const borderFollow = (r0, c0, rfrom, cfrom) => {
+    NBD++;
+    const nbd = NBD;
+    const startK = dirOf(rfrom - r0, cfrom - c0);
+    let p1r = -1, p1c = -1;
+    for (let i = 0; i < 8; i++) {
+      const k = (startK + i) % 8;
+      const nr = r0 + DR[k], nc = c0 + DC[k];
+      if (F[nr*W2+nc] !== 0) { p1r = nr; p1c = nc; break; }
+    }
+    if (p1r < 0) { F[r0*W2+c0] = -nbd; return [{ x:c0-1, y:r0-1 }]; }
+
+    const pts = [];
+    let i2r = rfrom, i2c = cfrom;
+    let i3r = r0,    i3c = c0;
+    while (true) {
+      const bk = dirOf(i2r - i3r, i2c - i3c);
+      let i4r = -1, i4c = -1, i4step = -1;
+      // Start from i=1 (skip the back direction itself) to avoid immediately
+      // returning to the previous pixel, which caused 2-point early termination.
+      for (let i = 1; i <= 8; i++) {
+        const k = (bk + i) % 8;
+        const nr = i3r + DR[k], nc = i3c + DC[k];
+        if (F[nr*W2+nc] !== 0) { i4r = nr; i4c = nc; i4step = i; break; }
+      }
+      // Guard: no non-background neighbor found (thin junction)
+      if (i4r < 0) {
+        if (F[i3r*W2+i3c] === 1) F[i3r*W2+i3c] = -nbd;
+        pts.push({ x: i3c - 1, y: i3r - 1 });
+        break;
+      }
+      if (F[i3r*W2+i3c] === 1)
+        F[i3r*W2+i3c] = (i4step > 1) ? -nbd : nbd;
+      pts.push({ x: i3c - 1, y: i3r - 1 });
+      // Terminate when we return to the starting pixel after at least one step
+      if (i3r === r0 && i3c === c0 && pts.length > 1) break;
+      if (pts.length > W * H) break;
+      i2r = i3r; i2c = i3c;
+      i3r = i4r; i3c = i4c;
+    }
+    return pts;
+  };
+
+  for (let r = 1; r < H2-1; r++) {
+    for (let c = 1; c < W2-1; c++) {
+      const v = F[r*W2+c];
+      if (v === 1 && F[r*W2+(c-1)] === 0) {
+        contours.push({ pts: borderFollow(r, c, r, c-1), isHole: false });
+      } else if (v >= 1 && F[r*W2+(c+1)] === 0) {
+        contours.push({ pts: borderFollow(r, c, r, c+1), isHole: true });
+      }
+    }
+  }
+  return contours;
+}
+
+// Shoelace polygon area — returns ~0 for collinear/spurious hole contours
+function _polyArea2D(pts) {
+  let a = 0;
+  for (let i = 0, n = pts.length; i < n; i++) {
+    const j = (i+1) % n;
+    a += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+  }
+  return Math.abs(a) * 0.5;
+}
+
 function mooreBoundaryTraceMask(mask, W, H) {
   let sx=-1, sy=-1;
   outer: for (let y=0; y<H; y++) for (let x=0; x<W; x++) if (mask[y*W+x]) { sx=x; sy=y; break outer; }
@@ -3240,7 +4177,7 @@ function mooreBoundaryTraceMask(mask, W, H) {
 function autoDetectContour() {
   const view = S.contourView;
   const url = S.imgs[view];
-  if (!url) return alert('העלה תמונה קודם');
+  if (!url) return alert('Please upload an image first');
 
   // ── PATH A: saved segmentation mask from Step 2 ──
   const savedSeg = S.segMasks?.[view];
@@ -3330,7 +4267,7 @@ function refineContour() {
   S._forcePathB[view]=false;
   const btn=document.getElementById('refine-btn');
   const lvl=Math.round((S.dilScale[view]-1)/0.6);
-  if (btn) btn.textContent=`🎯 דייק ${lvl>0?'×'+lvl:''}`;
+  if (btn) btn.textContent=`🎯 Refine ${lvl>0?'×'+lvl:''}`;
 }
 
 // Move each polygon vertex to the strongest gradient along its outward normal.
@@ -3356,6 +4293,32 @@ function _snapToEdges(pts, gray, W, H, searchR) {
   });
 }
 
+// Removes connected components whose pixel count is below minRatio * (largest blob size).
+// Eliminates ruler tick marks and speckles before morphClose can bridge them to the object.
+function _removeSmallBlobs(mask, W, H, minRatio = 0.05) {
+  const vis = new Uint8ClampedArray(W * H);
+  const blobs = [];
+  for (let i = 0; i < W * H; i++) {
+    if (!mask[i] || vis[i]) continue;
+    const px = [], q = [i]; vis[i] = 1; let qi = 0;
+    while (qi < q.length) {
+      const idx = q[qi++]; px.push(idx);
+      const x = idx % W, y = (idx / W) | 0;
+      if (x > 0   && mask[idx-1] && !vis[idx-1]) { vis[idx-1]=1; q.push(idx-1); }
+      if (x < W-1 && mask[idx+1] && !vis[idx+1]) { vis[idx+1]=1; q.push(idx+1); }
+      if (y > 0   && mask[idx-W] && !vis[idx-W]) { vis[idx-W]=1; q.push(idx-W); }
+      if (y < H-1 && mask[idx+W] && !vis[idx+W]) { vis[idx+W]=1; q.push(idx+W); }
+    }
+    blobs.push(px);
+  }
+  if (!blobs.length) return mask;
+  const maxSize = Math.max(...blobs.map(b => b.length));
+  const minSize = maxSize * minRatio;
+  const out = new Uint8ClampedArray(W * H);
+  for (const b of blobs) if (b.length >= minSize) b.forEach(i => out[i] = 255);
+  return out;
+}
+
 // Derive contour polygon from a saved segmentation mask.
 // Uses the original image for gradient-based edge snapping after D-P.
 function _contourFromSegMask(mask, mW, mH) {
@@ -3376,6 +4339,10 @@ function _contourFromSegMask(mask, mW, mH) {
       obj[y*sW+x] = (sx<mW&&sy<mH&&mask[sy*mW+sx]>128) ? 255 : 0;
     }
   }
+  // Drop isolated noise blobs (ruler ticks, speckles) before morphClose can merge them
+  // into the object. Keeps any blob >= 5% of the largest blob's area.
+  obj = _removeSmallBlobs(obj, sW, sH, 0.05);
+
   // Large morphClose fills texture holes (3D-print surface noise, checkerboard seams).
   // Without this the elephant fragments into many small blobs; findBestBlob picks one fragment.
   // r=8 fills holes up to 16px wide; erode(8) restores the boundary (net 0 expansion).
@@ -3409,35 +4376,36 @@ function _contourFromSegMask(mask, mW, mH) {
   img.src = url;
 }
 
-// Shared finalisation: best blob → boundary trace → D-P → edge snap → store poly.
-// gray is optional; when provided, vertices are snapped to nearest gradient.
+// Shared finalisation: best blob → Moore trace → D-P → edge snap → outer poly + holes.
+// gray is optional; when provided, outer vertices are snapped to nearest gradient.
 function _finishContourFromMask(obj, W, H, r, gray) {
   const blob = findLargestBlob(obj, W, H);
-  let traced;
+  let blobMask;
   if (blob && blob.length > 50) {
-    const blobMask = new Uint8ClampedArray(W*H);
+    blobMask = new Uint8ClampedArray(W*H);
     blob.forEach(i => blobMask[i] = 255);
-    traced = mooreBoundaryTraceMask(blobMask, W, H);
   }
 
-  // Fallback: raw threshold if blob trace failed
-  if (!traced || traced.length < 4) {
+  // Fallback: raw threshold if no blob found
+  if (!blobMask) {
     const thresh = segThresholds[S.contourView] ?? 120;
     const fallMask = new Uint8ClampedArray(W*H);
     for (let i=0; i<W*H; i++) if (obj[i] > 128 || obj[i] > thresh) fallMask[i]=255;
     const fb = findLargestBlob(fallMask, W, H);
-    if (!fb) { alert('לא ניתן לזהות מתאר — נסה לשנות את הרגישות'); return; }
-    const fbMask = new Uint8ClampedArray(W*H);
-    fb.forEach(i => fbMask[i]=255);
-    traced = mooreBoundaryTraceMask(fbMask, W, H);
+    if (!fb) { alert('Could not find contour — try adjusting sensitivity'); return; }
+    blobMask = new Uint8ClampedArray(W*H);
+    fb.forEach(i => blobMask[i] = 255);
   }
-  if (!traced || traced.length < 4) { alert('לא ניתן לזהות מתאר'); return; }
 
-  // Subsample before D-P (cap at 2500 pts for performance)
-  const step = Math.max(1, Math.floor(traced.length/2500));
-  const sub  = traced.filter((_,i) => i%step===0);
+  // ── Suzuki-Abe: outer contour + topologically-correct holes ──
+  const allContours = _suzukiAbe(blobMask, W, H);
 
-  // eps=0.4 matches stl-maker precision (vs old 2/r which was 5-15× coarser)
+  const outers = allContours.filter(c => !c.isHole && c.pts.length >= 4);
+  if (!outers.length) { alert('Could not detect contour'); return; }
+  const outerPts = outers.reduce((a, b) => b.pts.length > a.pts.length ? b : a).pts;
+
+  const step = Math.max(1, Math.floor(outerPts.length / 2500));
+  const sub  = outerPts.filter((_, i) => i % step === 0);
   let simplified = douglasPeucker(sub, 0.4);
 
   // Snap each vertex to the nearest strong gradient along its outward normal
@@ -3450,6 +4418,112 @@ function _finishContourFromMask(obj, W, H, r, gray) {
     pts: simplified.map(p => ({ x: p.x*scaleX, y: p.y*scaleY })),
     closed: true
   };
+
+  // ── Holes: filter by area — spurious edge-holes have ~0 enclosed area ──
+  if (!S.holes) S.holes = {};
+  const minHoleArea = Math.max(30, (blob ? blob.length : W*H) * 0.001);
+  S.holes[S.contourView] = allContours
+    .filter(c => c.isHole && c.pts.length >= 4 && _polyArea2D(c.pts) >= minHoleArea)
+    .map(c => {
+      const hs = Math.max(1, Math.floor(c.pts.length / 1000));
+      const hSimp = douglasPeucker(c.pts.filter((_, i) => i % hs === 0), 0.4);
+      return hSimp.map(p => ({ x: p.x*scaleX, y: p.y*scaleY }));
+    })
+    .filter(h => h.length >= 3);
+
+  _applyContourTargetPts();
+
+  // Cross-validate polygon area against the segmentation silhouette.
+  // If the polygon enclosed background (ratio > 1.20) or missed the object (ratio < 0.80),
+  // clamp each out-of-silhouette vertex to its nearest white pixel in the mask.
+  updateContourInfo();
+  const ci = S.contourInfo?.[S.contourView];
+  if (ci?.areaRatio != null && (ci.areaRatio > 1.20 || ci.areaRatio < 0.80)) {
+    _clampPolyToSilhouette(S.contourView);
+    updateContourInfo(); // recompute ratio after correction
+  }
+
+  drawContour(); persistState();
+}
+
+// Moves any polygon vertex that falls outside the silhouette mask to the nearest
+// white pixel along the line from vertex toward the polygon centroid.
+function _clampPolyToSilhouette(view) {
+  const seg = S.segMasks?.[view];
+  const poly = S.polys?.[view];
+  if (!seg || !poly?.closed || poly.pts.length < 3 || !cC) return;
+
+  const { mask, W: mW, H: mH } = seg;
+  const toMX = mW / cC.width, toMY = mH / cC.height;
+
+  // Centroid in canvas space
+  const cx = poly.pts.reduce((s, p) => s + p.x, 0) / poly.pts.length;
+  const cy = poly.pts.reduce((s, p) => s + p.y, 0) / poly.pts.length;
+
+  poly.pts = poly.pts.map(p => {
+    const mx = Math.round(p.x * toMX), my = Math.round(p.y * toMY);
+    // If already inside the silhouette, keep as-is
+    if (mx >= 0 && mx < mW && my >= 0 && my < mH && mask[my * mW + mx]) return p;
+
+    // Walk toward centroid until we hit a silhouette pixel
+    const dx = cx - p.x, dy = cy - p.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    const steps = Math.ceil(dist);
+    for (let k = 1; k <= steps; k++) {
+      const nx = p.x + dx / dist * k, ny = p.y + dy / dist * k;
+      const nmx = Math.round(nx * toMX), nmy = Math.round(ny * toMY);
+      if (nmx >= 0 && nmx < mW && nmy >= 0 && nmy < mH && mask[nmy * mW + nmx])
+        return { x: nx, y: ny };
+    }
+    return p; // couldn't find — keep original
+  });
+}
+
+// ── Contour point-count control ──────────────────────────────────────────────
+// Uniformly resample a polygon to exactly targetN points along its perimeter.
+function _resamplePts(pts, targetN, closed = true) {
+  const n = pts.length;
+  if (n < 2 || targetN < 2) return pts;
+  const segCount = closed ? n : n - 1;
+  const cum = [0];
+  for (let i = 0; i < segCount; i++) {
+    const a = pts[i], b = pts[(i + 1) % n];
+    cum.push(cum[i] + Math.hypot(b.x - a.x, b.y - a.y));
+  }
+  const total = cum[segCount];
+  if (total < 1e-6) return pts;
+  const step = total / targetN;
+  const out = [];
+  for (let k = 0; k < targetN; k++) {
+    const d = k * step;
+    let i = 0;
+    while (i < segCount - 1 && cum[i + 1] <= d) i++;
+    const sl = cum[i + 1] - cum[i];
+    const t = sl < 1e-10 ? 0 : (d - cum[i]) / sl;
+    const a = pts[i], b = pts[(i + 1) % n];
+    out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+  }
+  return out;
+}
+
+// Apply S.contourTargetPts resample to current polygon (called after auto-detect).
+function _applyContourTargetPts() {
+  const targetN = S.contourTargetPts;
+  if (!targetN || targetN < 3) return;
+  const poly = S.polys[S.contourView];
+  if (!poly || poly.pts.length < 3) return;
+  poly.pts = _resamplePts(poly.pts, targetN, poly.closed);
+}
+
+// Public: resample current polygon to N and persist (called from UI select).
+function resampleContour(targetN) {
+  S.contourTargetPts = targetN;
+  const poly = S.polys[S.contourView];
+  if (!poly || poly.pts.length < 3) { persistState(); return; }
+  poly.pts = _resamplePts(poly.pts, targetN, poly.closed);
+  // Sync select display
+  const sel = document.getElementById('pts-count-sel');
+  if (sel) sel.value = String(targetN);
   drawContour(); updateContourInfo(); persistState();
 }
 
@@ -3767,6 +4841,10 @@ function calcDimensions() {
   S.dims = { W, H, D };
   // Run cross-validation after dims are computed
   scaleXValidation();
+  // Refresh reference comparison if the user already has values filled in
+  if (document.getElementById('ref-W')?.value || document.getElementById('ref-H')?.value || document.getElementById('ref-D')?.value) {
+    compareWithReference();
+  }
 }
 
 // ── Hole auto-detection ───────────────────────────────────────────────
@@ -3796,7 +4874,7 @@ function detectHoles(objMask, W, H, minHoleArea=30) {
 
 function autoDetectHoles() {
   const url = S.imgs[S.contourView];
-  if (!url || !S.polys[S.contourView].pts.length) return alert('זיהוי מתאר קודם');
+  if (!url || !S.polys[S.contourView].pts.length) return alert('Detect the contour first');
   const tmpC=document.createElement('canvas'), tmpCtx=tmpC.getContext('2d');
   const img=new Image();
   img.onload=()=>{
@@ -3818,7 +4896,7 @@ function autoDetectHoles() {
     for (let i=0;i<W*H;i++) if (!bg[i]&&!dilated[i]) obj[i]=255;
     obj=morphClose(obj,W,H,3);
     const holes=detectHoles(obj,W,H,50);
-    if (!holes.length) { alert('לא נמצאו חורים'); return; }
+    if (!holes.length) { alert('No holes found'); return; }
     if (!S.holes) S.holes={};
     const scaleX=cC?cC.width/W:1, scaleY=cC?cC.height/H:1;
     S.holes[S.contourView]=holes.map(region=>{
@@ -3828,7 +4906,7 @@ function autoDetectHoles() {
       const simp=douglasPeucker(traced,3/r);
       return simp.map(p=>({x:p.x*scaleX,y:p.y*scaleY}));
     });
-    alert(`נמצאו ${holes.length} חורים`);
+    alert(`Found ${holes.length} hole(s)`);
     drawContour(); persistState();
   };
   img.src=url;
@@ -3856,9 +4934,9 @@ function scaleXValidation() {
 
   // Need at least 2 views to compare
   const pairs = [];
-  if (f && s) pairs.push({ label:'גובה H', a: f.h, bLabel:'פנים', aLabel:'צד', b: s.h, pair:'H:front-side' });
-  if (f && t) pairs.push({ label:'רוחב W', a: f.w, aLabel:'פנים', b: t.w, bLabel:'על', pair:'W:front-top' });
-  if (s && t) pairs.push({ label:'עומק D', a: s.w, aLabel:'צד',  b: t.h, bLabel:'על', pair:'D:side-top' });
+  if (f && s) pairs.push({ label:'Height H', a: f.h, bLabel:'Front', aLabel:'Side', b: s.h, pair:'H:front-side' });
+  if (f && t) pairs.push({ label:'Width W', a: f.w, aLabel:'Front', b: t.w, bLabel:'Top', pair:'W:front-top' });
+  if (s && t) pairs.push({ label:'Depth D', a: s.w, aLabel:'Side',  b: t.h, bLabel:'Top', pair:'D:side-top' });
 
   if (!pairs.length) { panel.style.display='none'; return; }
   panel.style.display='block';
@@ -3871,22 +4949,123 @@ function scaleXValidation() {
     maxDisc = Math.max(maxDisc, disc);
     const color = disc < 3 ? '#22c55e' : disc < 8 ? '#f59e0b' : '#ef4444';
     const icon = disc < 3 ? '✓' : disc < 8 ? '⚠' : '✗';
-    if (disc >= 8) suggestions.push(`${p.label}: ${p.aLabel} מראה ${p.a.toFixed(1)}mm, ${p.bLabel} מראה ${p.b.toFixed(1)}mm — בדוק קנה מידה של ${p.a > p.b ? p.aLabel : p.bLabel}`);
+    if (disc >= 8) suggestions.push(`${p.label}: ${p.aLabel} shows ${p.a.toFixed(1)}mm, ${p.bLabel} shows ${p.b.toFixed(1)}mm — check scale of ${p.a > p.b ? p.aLabel : p.bLabel}`);
     return `<div style="display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:6px;background:var(--bg);">
       <span style="color:${color};font-size:13px;width:16px;">${icon}</span>
       <span style="color:var(--subtle);width:56px;">${p.label}</span>
       <span style="color:var(--text);">${p.aLabel}: <b>${p.a.toFixed(1)}</b></span>
       <span style="color:var(--muted);">vs</span>
       <span style="color:var(--text);">${p.bLabel}: <b>${p.b.toFixed(1)}</b></span>
-      <span style="margin-right:auto;color:${color};font-size:11px;">${disc.toFixed(1)}% סטייה</span>
+      <span style="margin-right:auto;color:${color};font-size:11px;">${disc.toFixed(1)}% deviation</span>
     </div>`;
   }).join('');
 
   const ok = maxDisc < 3, warn = maxDisc < 8;
-  badgeEl.textContent = ok ? 'תקין' : warn ? 'סטייה קלה' : 'בדיקה נדרשת';
+  badgeEl.textContent = ok ? 'OK' : warn ? 'Minor deviation' : 'Check required';
   badgeEl.style.background = ok ? 'rgba(34,197,94,.15)' : warn ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.15)';
   badgeEl.style.color = ok ? '#22c55e' : warn ? '#f59e0b' : '#ef4444';
   suggEl.innerHTML = suggestions.length ? '💡 ' + suggestions.join('<br>💡 ') : '';
+}
+
+// ══════════════════════════ REFERENCE COMPARISON ══════════════════════════
+
+function _polyAreaMM(view) {
+  const p = S.polys[view];
+  const ppm = S.scale[view];
+  if (!p || p.pts.length < 3 || !ppm) return null;
+  // Shoelace formula in pixel space, then convert area
+  let area = 0;
+  const n = p.pts.length;
+  for (let i = 0; i < n; i++) {
+    const a = p.pts[i], b = p.pts[(i + 1) % n];
+    area += a.x * b.y - b.x * a.y;
+  }
+  return Math.abs(area) / 2 / (ppm * ppm); // px² → mm²
+}
+
+function _detectedDimsMM() {
+  const bboxMM = (v) => {
+    const p = S.polys[v];
+    const ppm = S.scale[v];
+    if (!p.pts.length || !ppm) return null;
+    const xs = p.pts.map(pt => pt.x / ppm), ys = p.pts.map(pt => pt.y / ppm);
+    return { w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+  };
+  const f = bboxMM('front'), s = bboxMM('side');
+  return {
+    W: f ? f.w : null,
+    H: f ? f.h : null,
+    D: s ? s.w : null,
+  };
+}
+
+function compareWithReference() {
+  const tol = Math.abs(parseFloat(document.getElementById('ref-tol').value) || 10) / 100;
+  const refs = {
+    W: parseFloat(document.getElementById('ref-W').value) || null,
+    H: parseFloat(document.getElementById('ref-H').value) || null,
+    D: parseFloat(document.getElementById('ref-D').value) || null,
+  };
+  const det = _detectedDimsMM();
+
+  const labels = { W: 'Width W', H: 'Height H', D: 'Depth D' };
+  const rowsEl = document.getElementById('ref-rows');
+  const badgeEl = document.getElementById('ref-badge');
+  const areaEl = document.getElementById('ref-area');
+
+  if (!refs.W && !refs.H && !refs.D) {
+    rowsEl.innerHTML = '<div style="font-size:12px;color:var(--muted);">Enter at least one reference dimension</div>';
+    return;
+  }
+
+  let allMatch = true, anyProvided = false;
+  const rows = Object.entries(refs).map(([k, ref]) => {
+    if (!ref) return '';
+    anyProvided = true;
+    const detected = det[k];
+    if (!detected) {
+      return `<div style="display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:6px;background:var(--bg);font-size:12px;font-family:'Fira Code',monospace;">
+        <span style="color:#94a3b8;width:16px;">?</span>
+        <span style="color:var(--subtle);width:60px;">${labels[k]}</span>
+        <span style="color:var(--muted);">Dimension not computed (missing contour / scale)</span>
+      </div>`;
+    }
+    const diff = (detected - ref) / ref;
+    const absDiff = Math.abs(diff);
+    const pct = (diff * 100).toFixed(1);
+    let icon, color, statusText;
+    if (absDiff <= tol) {
+      icon = '✓'; color = '#22c55e'; statusText = 'Match';
+    } else if (diff > tol) {
+      icon = '↑'; color = '#ef4444'; statusText = 'Too large';
+      allMatch = false;
+    } else {
+      icon = '↓'; color = '#f59e0b'; statusText = 'Too small';
+      allMatch = false;
+    }
+    return `<div style="display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:6px;background:var(--bg);font-size:12px;font-family:'Fira Code',monospace;">
+      <span style="color:${color};font-size:13px;width:16px;">${icon}</span>
+      <span style="color:var(--subtle);width:60px;">${labels[k]}</span>
+      <span style="color:var(--text);">Detected: <b>${detected.toFixed(1)}</b> mm</span>
+      <span style="color:var(--muted);">Reference: ${ref.toFixed(1)} mm</span>
+      <span style="margin-right:auto;color:${color};">${statusText} (${pct > 0 ? '+' : ''}${pct}%)</span>
+    </div>`;
+  }).join('');
+
+  rowsEl.innerHTML = rows || '<div style="font-size:12px;color:var(--muted);">No dimensions to check</div>';
+
+  // Show area for front view
+  const frontArea = _polyAreaMM('front');
+  areaEl.textContent = frontArea != null ? `Front contour area: ${frontArea.toFixed(1)} mm²` : '';
+
+  if (anyProvided) {
+    badgeEl.style.display = 'inline-block';
+    badgeEl.textContent = allMatch ? 'Match' : 'Mismatch';
+    badgeEl.style.background = allMatch ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)';
+    badgeEl.style.color = allMatch ? '#22c55e' : '#ef4444';
+  } else {
+    badgeEl.style.display = 'none';
+  }
 }
 
 // ══════════════════════════ STEP 8: DIMENSIONS ══════════════════════════
@@ -4008,14 +5187,14 @@ function renderDimList() {
   if (!el) return;
   const ppm = S.scale[dimView];
   const poly = S.polys[dimView];
-  if (!ppm || !poly.pts.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">אין נתונים</div>'; return; }
+  if (!ppm || !poly.pts.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;">No data</div>'; return; }
   const xs = poly.pts.map(p => p.x), ys = poly.pts.map(p => p.y);
   const W = ((Math.max(...xs)-Math.min(...xs))/ppm).toFixed(1);
   const H = ((Math.max(...ys)-Math.min(...ys))/ppm).toFixed(1);
   el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">רוחב</span><span style="color:var(--teal-light);">${W} mm</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">גובה</span><span style="color:var(--teal-light);">${H} mm</span></div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">נקודות מתאר</span><span style="color:var(--subtle);">${poly.pts.length}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Width</span><span style="color:var(--teal-light);">${W} mm</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Height</span><span style="color:var(--teal-light);">${H} mm</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Contour points</span><span style="color:var(--subtle);">${poly.pts.length}</span></div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="color:var(--muted);">px/mm</span><span style="color:var(--subtle);">${ppm.toFixed(3)}</span></div>`;
 }
 
@@ -4026,7 +5205,7 @@ function renderLayout() {
   const c = document.getElementById('layout-canvas');
   if (!c) return;
   const drawScale = parseFloat(document.getElementById('draw-scale')?.value ?? 1);
-  const partName = document.getElementById('part-name')?.value ?? 'חלק';
+  const partName = document.getElementById('part-name')?.value ?? 'Part';
 
   // A3 landscape canvas
   const CW = c.parentElement.clientWidth - 2;
@@ -4136,9 +5315,9 @@ function renderLayout() {
   // View labels
   ctx.fillStyle = '#64748b'; ctx.textAlign = 'center';
   ctx.font = `${fs}px Fira Sans, sans-serif`;
-  ctx.fillText('מבט פנים', frontX + fWpx/2, frontY + fHpx + fs + 6);
-  ctx.fillText('מבט צד',   sideX  + sWpx/2, sideY  + sHpx + fs + 6);
-  ctx.fillText('מבט על',   topX   + tWpx/2, topY   - 6);
+  ctx.fillText('Front View', frontX + fWpx/2, frontY + fHpx + fs + 6);
+  ctx.fillText('Side View',  sideX  + sWpx/2, sideY  + sHpx + fs + 6);
+  ctx.fillText('Top View',   topX   + tWpx/2, topY   - 6);
 
   // Dimension annotations (if scale available)
   ctx.strokeStyle = '#475569'; ctx.fillStyle = '#475569'; ctx.lineWidth = 0.8;
@@ -4182,14 +5361,14 @@ function renderLayout() {
   ctx.fillText(partName, CW-M-8, tbY + TB_H*0.42);
 
   ctx.font = `${lfs-1}px Fira Sans, sans-serif`; ctx.fillStyle = '#64748b';
-  ctx.fillText(`קנה מידה: 1:${drawScale}`, CW-M-8, tbY + TB_H*0.70);
-  ctx.fillText(new Date().toLocaleDateString('he-IL'), CW-M-8, tbY + TB_H*0.90);
+  ctx.fillText(`Scale: 1:${drawScale}`, CW-M-8, tbY + TB_H*0.70);
+  ctx.fillText(new Date().toLocaleDateString('en-GB'), CW-M-8, tbY + TB_H*0.90);
 
   ctx.textAlign = 'left'; ctx.fillStyle = '#334155';
   ctx.font = `bold ${lfs}px Fira Code, monospace`;
   ctx.fillText('TD Maker', M+10, tbY + TB_H*0.38);
   ctx.font = `${lfs-2}px Fira Sans, sans-serif`; ctx.fillStyle = '#94a3b8';
-  ctx.fillText('ציור טכני — ISO 128', M+10, tbY + TB_H*0.60);
+  ctx.fillText('Technical Drawing — ISO 128', M+10, tbY + TB_H*0.60);
   if (S.dims) {
     ctx.fillStyle = '#475569'; ctx.font = `${lfs-2}px Fira Code, monospace`;
     ctx.fillText(`W=${S.dims.W}  H=${S.dims.H}  D=${S.dims.D}  mm`, M+10, tbY + TB_H*0.82);
@@ -4287,17 +5466,17 @@ function exportDXF() {
     line('CENTER', bx-4, cy, bx+bw+4, cy);
   };
 
-  drawViewDXF('front', frontX, frontY, fWp, fHp, 'FRONT / פנים');
-  drawViewDXF('side',  sideX,  sideY,  sWp, fHp, 'SIDE / צד');
-  drawViewDXF('top',   topX,   topY,   fWp, tHp, 'TOP / על');
+  drawViewDXF('front', frontX, frontY, fWp, fHp, 'FRONT');
+  drawViewDXF('side',  sideX,  sideY,  sWp, fHp, 'SIDE');
+  drawViewDXF('top',   topX,   topY,   fWp, tHp, 'TOP');
 
   // Dimension lines
-  const partName = document.getElementById('part-name')?.value ?? 'חלק';
+  const partName = document.getElementById('part-name')?.value ?? 'Part';
   const TB_X = PW-M-128, TB_Y = PH-M-52;
   line('BORDER',TB_X,TB_Y,PW-M,TB_Y); line('BORDER',TB_X,TB_Y,TB_X,PH-M);
   txt('DIMS', partName, TB_X+(PW-M-TB_X)/2, PH-M-40, 4);
   txt('DIMS', `1:${drawScale}`, TB_X+10, PH-M-22, 3);
-  txt('DIMS', new Date().toLocaleDateString('he-IL'), TB_X+10, PH-M-10, 2.5);
+  txt('DIMS', new Date().toLocaleDateString('en-GB'), TB_X+10, PH-M-10, 2.5);
   txt('DIMS', 'TD Maker', TB_X+80, PH-M-10, 2.5);
 
   h('0','ENDSEC','0','EOF');
@@ -4338,7 +5517,7 @@ function exportPrint() {
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>TD Drawing</title>
     <style>@page{size:A4 landscape;margin:0}body{margin:0}img{width:100%;height:100vh;object-fit:contain}@media print{button{display:none}}</style>
-    </head><body><button onclick="window.print()" style="position:fixed;top:10px;right:10px;z-index:9;padding:8px 18px;cursor:pointer;">הדפס</button>
+    </head><body><button onclick="window.print()" style="position:fixed;top:10px;right:10px;z-index:9;padding:8px 18px;cursor:pointer;">Print</button>
     <img src="${url}"/></body></html>`);
   w.document.close();
 }
@@ -4381,7 +5560,7 @@ function toggleHullGrid() {
     btn.style.background = hull.grid ? 'rgba(13,148,136,.15)' : 'var(--surface)';
     btn.style.color = hull.grid ? 'var(--teal-light)' : 'var(--subtle)';
     btn.style.borderColor = hull.grid ? 'var(--teal)' : 'var(--border)';
-    btn.textContent = hull.grid ? 'רשת ✓' : 'רשת';
+    btn.textContent = hull.grid ? 'Grid ✓' : 'Grid';
   }
   renderVisualHull();
 }
@@ -4537,7 +5716,7 @@ function renderVectorize() {
   if (!url) {
     c.width = 400; c.height = 280; ctx.fillStyle = '#1E293B'; ctx.fillRect(0,0,400,280);
     ctx.fillStyle='#475569'; ctx.font='14px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('אין תמונה', 200, 140); updateVecStats([],[]); return;
+    ctx.fillText('No image', 200, 140); updateVecStats([],[]); return;
   }
 
   const img = new Image();
@@ -4666,7 +5845,7 @@ function updateVecStats(lines, arcs=[], curves=[]) {
   const pxToMm = (px) => ppm ? (px/dispScale/ppm) : null;
   const fmtLen = (a,b) => {
     const mm = pxToMm(Math.sqrt((b.x-a.x)**2+(b.y-a.y)**2));
-    return mm!=null ? `<b>${mm.toFixed(1)}</b> מ"מ` : `${Math.round(Math.sqrt((b.x-a.x)**2+(b.y-a.y)**2)/dispScale)} px`;
+    return mm!=null ? `<b>${mm.toFixed(1)}</b> mm` : `${Math.round(Math.sqrt((b.x-a.x)**2+(b.y-a.y)**2)/dispScale)} px`;
   };
   const fmtAngle = (a,b) => {
     const deg = Math.atan2(b.y-a.y, b.x-a.x) * 180/Math.PI;
@@ -4682,13 +5861,13 @@ function updateVecStats(lines, arcs=[], curves=[]) {
     }
   });
   const perimMm = pxToMm(perimPx);
-  const perimStr = perimMm!=null ? `${perimMm.toFixed(1)} מ"מ` : `${Math.round(perimPx/dispScale)} px`;
+  const perimStr = perimMm!=null ? `${perimMm.toFixed(1)} mm` : `${Math.round(perimPx/dispScale)} px`;
 
   const linesHTML = lines.map((s,i) => {
     const a=s.pts[0], b=s.pts[s.pts.length-1];
     return `<div style="padding:4px 6px;margin-bottom:3px;background:rgba(20,184,166,.07);border-radius:6px;font-family:'Fira Code',monospace;font-size:11px;display:flex;gap:8px;align-items:center;">
       <span style="color:#14B8A6;font-size:13px;">━</span>
-      <span style="color:var(--subtle);">קו ${i+1}</span>
+      <span style="color:var(--subtle);">Line ${i+1}</span>
       <span style="color:var(--text);">${fmtLen(a,b)}</span>
       <span style="color:var(--muted);margin-right:auto;">${fmtAngle(a,b)}</span>
     </div>`;
@@ -4697,17 +5876,17 @@ function updateVecStats(lines, arcs=[], curves=[]) {
   // RANSAC arcs with circle radius
   const arcsHTML = arcs.map((s,i) => {
     const rMm = s.arc ? pxToMm(s.arc.r) : null;
-    const rStr = rMm!=null ? `R=${rMm.toFixed(1)} מ"מ` : s.arc ? `R=${Math.round(s.arc.r/dispScale)} px` : '';
+    const rStr = rMm!=null ? `R=${rMm.toFixed(1)} mm` : s.arc ? `R=${Math.round(s.arc.r/dispScale)} px` : '';
     return `<div style="padding:4px 6px;margin-bottom:3px;background:rgba(167,139,250,.07);border-radius:6px;font-family:'Fira Code',monospace;font-size:11px;display:flex;gap:8px;align-items:center;">
       <span style="color:#A78BFA;font-size:13px;">⌒</span>
-      <span style="color:var(--subtle);">קשת ${i+1}</span>
+      <span style="color:var(--subtle);">Arc ${i+1}</span>
       <span style="color:#C4B5FD;font-weight:600;">${rStr}</span>
     </div>`;
   }).join('');
 
   const curvesHTML = curves.map((_,i) =>
     `<div style="padding:4px 6px;margin-bottom:3px;background:rgba(249,115,22,.07);border-radius:6px;font-size:11px;color:var(--muted);">
-      <span style="color:#F97316;">~</span> עקום חופשי ${i+1}
+      <span style="color:#F97316;">~</span> Free curve ${i+1}
     </div>`
   ).join('');
 
@@ -4716,30 +5895,30 @@ function updateVecStats(lines, arcs=[], curves=[]) {
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-bottom:10px;">
       <div style="background:var(--bg);border-radius:8px;padding:6px;text-align:center;">
         <div style="font-size:16px;font-weight:700;color:#14B8A6;font-family:'Fira Code',monospace;">${lines.length}</div>
-        <div style="font-size:9px;color:var(--muted);">קווים</div>
+        <div style="font-size:9px;color:var(--muted);">Lines</div>
       </div>
       <div style="background:var(--bg);border-radius:8px;padding:6px;text-align:center;">
         <div style="font-size:16px;font-weight:700;color:#A78BFA;font-family:'Fira Code',monospace;">${arcs.length}</div>
-        <div style="font-size:9px;color:var(--muted);">קשתות RANSAC</div>
+        <div style="font-size:9px;color:var(--muted);">RANSAC Arcs</div>
       </div>
       <div style="background:var(--bg);border-radius:8px;padding:6px;text-align:center;">
         <div style="font-size:16px;font-weight:700;color:#F97316;font-family:'Fira Code',monospace;">${curves.length}</div>
-        <div style="font-size:9px;color:var(--muted);">עקומות</div>
+        <div style="font-size:9px;color:var(--muted);">Curves</div>
       </div>
       <div style="background:var(--bg);border-radius:8px;padding:6px;text-align:center;">
         <div style="font-size:12px;font-weight:700;color:var(--teal-light);font-family:'Fira Code',monospace;">${perimStr}</div>
-        <div style="font-size:9px;color:var(--muted);">היקף</div>
+        <div style="font-size:9px;color:var(--muted);">Perimeter</div>
       </div>
     </div>
     <div style="max-height:220px;overflow-y:auto;">
       ${linesHTML}${arcsHTML}${curvesHTML}
-      ${!totalSegs ? '<div style="font-size:11px;color:var(--border);padding:8px 0;text-align:center;">אין נתוני מתאר</div>' : ''}
+      ${!totalSegs ? '<div style="font-size:11px;color:var(--border);padding:8px 0;text-align:center;">No contour data</div>' : ''}
     </div>`;
 }
 
 // ══════════════════════════ SAVE / NEW ══════════════════════════
 async function newProject() {
-  if (!confirm('למחוק את הפרויקט הנוכחי ולהתחיל מחדש?')) return;
+  if (!confirm('Delete the current project and start fresh?')) return;
   for (const v of ['front','side','top','iso']) await IDB.del(`img-${v}`);
   await IDB.del('state');
   await IDB.del('measurements');
