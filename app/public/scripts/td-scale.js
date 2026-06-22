@@ -160,9 +160,10 @@ function applyRulerScale(periodPx, mm) {
   const pxPerMM = periodPx / mm;
   // Add as a measurement for the current view
   const view = S.scaleView;
-  // Find approximate canvas points at center of image
-  const cx = scC ? scC.width / 2 : 100, cy = scC ? scC.height / 2 : 100;
-  const pts = [{x: cx - periodPx/2, y: cy}, {x: cx + periodPx/2, y: cy}];
+  // Store pts in original-image px (center of image, period in original px)
+  const natW = scImg ? scImg.naturalWidth  : 800;
+  const natH = scImg ? scImg.naturalHeight : 600;
+  const pts = [{ x: natW/2 - periodPx/2, y: natH/2 }, { x: natW/2 + periodPx/2, y: natH/2 }];
   measurements[view].push({ px: Math.round(periodPx), mm, ppm: pxPerMM, pts, auto: true });
   updateScaleAvg();
   renderMeasurements();
@@ -279,12 +280,16 @@ function drawScale() {
   }
 
   // 3. Previous measurements (grey dashed)
+  // pts are stored in original-image px; convert to current canvas px for drawing
+  const _toC = (scImg && scC && scC.width > 0) ? scC.width / scImg.naturalWidth : 1;
   measurements[S.scaleView].forEach(m => {
     if (!m.pts) return;
-    scCtx.beginPath(); scCtx.moveTo(m.pts[0].x, m.pts[0].y); scCtx.lineTo(m.pts[1].x, m.pts[1].y);
+    const p0 = { x: m.pts[0].x * _toC, y: m.pts[0].y * _toC };
+    const p1 = { x: m.pts[1].x * _toC, y: m.pts[1].y * _toC };
+    scCtx.beginPath(); scCtx.moveTo(p0.x, p0.y); scCtx.lineTo(p1.x, p1.y);
     scCtx.strokeStyle = 'rgba(148,163,184,.5)'; scCtx.lineWidth = 1.5 / s;
     scCtx.setLineDash([4/s, 3/s]); scCtx.stroke(); scCtx.setLineDash([]);
-    [m.pts[0], m.pts[1]].forEach(p => {
+    [p0, p1].forEach(p => {
       scCtx.beginPath(); scCtx.arc(p.x, p.y, 4/s, 0, Math.PI*2);
       scCtx.fillStyle = 'rgba(148,163,184,.6)'; scCtx.fill();
     });
@@ -488,7 +493,9 @@ function addMeasurement() {
   // Convert canvas px → original-image px so S.scale[v] is always original-image px/mm
   const toOrig = (scImg && scC && scC.width > 0) ? scImg.naturalWidth / scC.width : 1;
   const ppm = (pxCanvas * toOrig) / mm;
-  measurements[S.scaleView].push({ px: Math.round(pxCanvas), mm, ppm, pts: [{ ...a }, { ...b }] });
+  // Store pts in original-image px so they remain correct if canvas is resized
+  const ptsOrig = [{ x: a.x * toOrig, y: a.y * toOrig }, { x: b.x * toOrig, y: b.y * toOrig }];
+  measurements[S.scaleView].push({ px: Math.round(pxCanvas), mm, ppm, pts: ptsOrig });
   S.scalePts = [];
   document.getElementById('mm-input').value = '';
   updatePtsInfo();
