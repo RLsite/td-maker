@@ -79,7 +79,7 @@ function _ensureSegMask(view, callback) {
     mask = _removeBorderConnected(mask, W, H);
     if (!S.segMasks) S.segMasks = {};
     S.segMasks[view] = { mask, W, H };
-    _updateSegMeta(view, mask, W, H);
+    _updateSegMeta(view, mask, W, H, img.width, img.height);
     if (!S.segMaskImproved?.[view] && typeof _improveSegFromISO === 'function') {
       _improveSegFromISO(view);
     }
@@ -124,8 +124,8 @@ function _analyzeImg(view, img) {
 }
 
 // Computes silhouette bounding-box + pixel area and stores in S.segMeta[view].
-// Called from every place that writes S.segMasks so downstream steps always have it.
-function _updateSegMeta(view, mask, W, H) {
+// origW/origH: the original (unscaled) image dimensions — used for correct px→mm conversion.
+function _updateSegMeta(view, mask, W, H, origW, origH) {
   let mnX = W, mnY = H, mxX = 0, mxY = 0, area = 0;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     if (mask[y*W+x]) {
@@ -135,7 +135,8 @@ function _updateSegMeta(view, mask, W, H) {
     }
   }
   S.segMeta[view] = (mxX > mnX && mxY > mnY)
-    ? { bbox: { minX: mnX, minY: mnY, maxX: mxX, maxY: mxY }, area, W, H }
+    ? { bbox: { minX: mnX, minY: mnY, maxX: mxX, maxY: mxY }, area, W, H,
+        origW: origW ?? W, origH: origH ?? H }
     : null;
 }
 

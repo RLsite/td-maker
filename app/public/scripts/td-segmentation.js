@@ -113,7 +113,7 @@ function segAutoSauvola() {
   segCtxO.putImageData(out, 0, 0);
   if (!S.segMasks) S.segMasks = {};
   S.segMasks[S.segView] = { mask, W, H };
-  _updateSegMeta(S.segView, mask, W, H);
+  _updateSegMeta(S.segView, mask, W, H, segImgEl?.naturalWidth, segImgEl?.naturalHeight);
   _updateContourSegBadges();
 }
 
@@ -134,7 +134,7 @@ function segFillHoles() {
   segCtxO.putImageData(out, 0, 0);
   if (!S.segMasks) S.segMasks = {};
   S.segMasks[S.segView] = { mask, W, H };
-  _updateSegMeta(S.segView, mask, W, H);
+  _updateSegMeta(S.segView, mask, W, H, segImgEl?.naturalWidth, segImgEl?.naturalHeight);
   _updateContourSegBadges();
 }
 
@@ -201,7 +201,7 @@ function applyThreshold() {
   // Save cleaned mask per-view so contour step can use it directly
   if (!S.segMasks) S.segMasks = {};
   S.segMasks[S.segView] = { mask, W, H };
-  _updateSegMeta(S.segView, mask, W, H);
+  _updateSegMeta(S.segView, mask, W, H, segImgEl?.naturalWidth, segImgEl?.naturalHeight);
   // Layer 2: segmentation intelligence
   const _segArea = mask.reduce((s, v) => s + (v ? 1 : 0), 0);
   ctxWrite(S.segView, 'seg', { area: _segArea, coverage: _segArea / (W*H), W, H, method: 'threshold' });

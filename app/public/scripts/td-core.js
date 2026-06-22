@@ -242,7 +242,14 @@ function buildObjectModel() {
   function pxDims(v) {
     const m = S.segMeta?.[v];
     if (!m?.bbox) return null;
-    return { w: m.bbox.maxX - m.bbox.minX, h: m.bbox.maxY - m.bbox.minY };
+    // Convert seg-canvas px to original-image px using stored origW/origH.
+    // segMeta.origW defaults to segMeta.W (i.e. r=1) when not stored.
+    const scaleX = (m.origW ?? m.W) / (m.W || 1);
+    const scaleY = (m.origH ?? m.H) / (m.H || 1);
+    return {
+      w: (m.bbox.maxX - m.bbox.minX) * scaleX,
+      h: (m.bbox.maxY - m.bbox.minY) * scaleY,
+    };
   }
   function ppm(v)   { return S.scale?.[v]    ?? null; }
   function score(v) { return S.segScore?.[v]  ?? 5;   } // default mid-score if not yet computed
