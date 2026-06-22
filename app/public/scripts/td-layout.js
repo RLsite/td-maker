@@ -87,7 +87,14 @@ function renderLayout() {
     // Center / symmetry lines
     // Use detected symmetry axis when available (teal), otherwise geometric centre (grey).
     const sym = S.symmetry?.[v];
-    const symAxisMm = sym ? sym.axis / ppm : null; // mask-px → mm
+    const srcW = S.polyCanvasSize?.[v]?.w ?? 1;
+    const srcH = S.polyCanvasSize?.[v]?.h ?? 1;
+    // sym.axis is in mask-px (sym.mW × sym.mH); convert to contour-canvas-px first, then pseudo-mm
+    const symAxisMm = sym
+      ? (sym.dir === 'v'
+          ? (sym.mW ? sym.axis / sym.mW * srcW : sym.axis) / ppm
+          : (sym.mH ? sym.axis / sym.mH * srcH : sym.axis) / ppm)
+      : null;
     const cxc = sym?.dir === 'v' ? px(symAxisMm) : ox + (maxX-minX)*scl/2;
     const cyc = sym?.dir === 'h' ? py(symAxisMm) : oy + (maxY-minY)*scl/2;
     const axisColor = sym ? '#0D9488' : '#94a3b8';

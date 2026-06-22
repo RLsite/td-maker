@@ -99,14 +99,18 @@ function exportDXF() {
     // Otherwise fall back to geometric center.
     const sym = S.symmetry?.[v];
     const ppmV = S.scale[v] ?? 1;
+    const srcW = S.polyCanvasSize?.[v]?.w ?? 1;
+    const srcH = S.polyCanvasSize?.[v]?.h ?? 1;
     let symX, symY;
     if (sym?.dir === 'v') {
-      // Symmetry axis x in mask pixels → mm → DXF units
-      symX = ox + (sym.axis / ppmV - minX) * scl;
+      // Convert sym.axis from mask-px to contour-canvas-px, then to pseudo-mm, then to DXF
+      const axisCanvasPx = sym.mW ? sym.axis / sym.mW * srcW : sym.axis;
+      symX = ox + (axisCanvasPx / ppmV - minX) * scl;
       symY = oy + vd.h * scl / 2;
     } else if (sym?.dir === 'h') {
+      const axisCanvasPx = sym.mH ? sym.axis / sym.mH * srcH : sym.axis;
       symX = ox + vd.w * scl / 2;
-      symY = oy + (sym.axis / ppmV - minY) * scl;
+      symY = oy + (axisCanvasPx / ppmV - minY) * scl;
     } else {
       symX = ox + vd.w * scl / 2;
       symY = oy + vd.h * scl / 2;

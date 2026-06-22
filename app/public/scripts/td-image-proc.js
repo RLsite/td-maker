@@ -1368,10 +1368,12 @@ function detectMaskSymmetry(mask, W, H) {
 
   const THRESH = 0.78;
   const ALIGN_THRESH = 0.80; // paired columns/rows must have pixels at similar positions
+  // Store mW/mH so callers can convert axis to any target coordinate system via
+  //   axisInTarget = (dir==='v') ? sym.axis / sym.mW * targetW : sym.axis / sym.mH * targetH
   if (bestV >= bestH && bestV >= THRESH && vAlignScore(bestVAx) >= ALIGN_THRESH)
-    return { axis: bestVAx, score: bestV, dir: 'v' };
+    return { axis: bestVAx, score: bestV, dir: 'v', mW: W, mH: H };
   if (bestH >  bestV && bestH >= THRESH && hAlignScore(bestHAx) >= ALIGN_THRESH)
-    return { axis: bestHAx, score: bestH, dir: 'h' };
+    return { axis: bestHAx, score: bestH, dir: 'h', mW: W, mH: H };
   return null;
 }
 
@@ -1426,7 +1428,10 @@ function applyMaskSymmetry(mask, W, H, sym) {
 // The better half (higher mean gradient along boundary) is mirrored to the weaker half.
 function applyContourSymmetry(pts, sym, gray, W, H) {
   if (!sym || pts.length < 6) return pts;
-  const ax = sym.axis;
+  // sym.axis is in mask coordinates (sym.mW × sym.mH); scale to this canvas (W × H).
+  const ax = sym.dir === 'v'
+    ? (sym.mW ? sym.axis / sym.mW * W : sym.axis)
+    : (sym.mH ? sym.axis / sym.mH * H : sym.axis);
 
   if (sym.dir === 'v') {
     // Score each point by local gradient strength — higher = more reliable
