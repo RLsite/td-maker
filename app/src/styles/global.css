@@ -62,3 +62,80 @@ button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 @media (max-width: 700px) {
   .export-grid-4 { grid-template-columns: 1fr 1fr !important; }
 }
+
+/* ── Unified view-tab button ── */
+/* Applied to all Front/Side/Top tab buttons across every step */
+.view-tab {
+  padding: 5px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--subtle);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  line-height: 1.4;
+  white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.view-tab:hover { color: var(--text); border-color: var(--subtle); }
+.view-tab.active {
+  background: var(--teal);
+  color: white;
+  border-color: var(--teal);
+}
+
+/* ── View-tab completion badge ── */
+.vtab-badge { font-size: 10px; color: var(--teal-light); margin-left: 2px; }
+.vtab-badge:empty { display: none; }
+.view-tab.active .vtab-badge { color: rgba(255,255,255,.8); }
+
+/* ── Spinner for quick-analysis loading ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════════════════════════════
+   ADAPTIVE LAYOUT
+   14" laptop   : ~1366×768  – height-constrained, compact padding
+   24" landscape: ~1920×1080 – design baseline
+   24" portrait : ~1080×1920 – tall, canvas panels must be capped
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Override inline padding:40px on every .panel section */
+.panel { padding: 40px !important; }
+
+/* ── SHORT SCREENS  (≤ 840px height — 14" laptop, 768p monitors) ─── */
+@media (max-height: 840px) {
+  .panel         { padding: 14px 24px !important; }
+  .panel h2      { font-size: 18px !important; margin-bottom: 3px !important; }
+  .panel p       { margin-bottom: 10px !important; }
+  .upload-zone   { height: 148px !important; }
+}
+@media (max-height: 700px) {
+  .panel         { padding: 8px 16px !important; }
+  .panel h2      { font-size: 15px !important; }
+}
+
+/* ── TALL SCREENS  (≥ 1300px height — 24" portrait / vertical) ───── */
+@media (min-height: 1300px) {
+  .upload-zone { height: 260px !important; }
+}
+
+/* Canvas area: hard cap so it never overflows on very tall displays.
+   min(72vh, 700px) = 553 px on 768-height, 700 px on 1080-height+  */
+#scale-canvas-wrap,
+#contour-canvas-wrap {
+  max-height: min(72vh, 700px);
+}
+
+/* ── WIDE SCREENS  (≥ 1500px width — 24" landscape 1920p) ────────── */
+@media (min-width: 1500px) {
+  /* Stop upload cards from stretching to 500px+ each */
+  .upload-grid-3 { max-width: 1000px; }
+  /* Sidebar gains a little breathing room */
+  #sidebar { width: 240px !important; }
+}
+
+/* ── INTERMEDIATE WIDTH  (900–1300px — vertical 24", some laptops) ── */
+@media (min-width: 901px) and (max-width: 1300px) {
+  #sidebar { width: 176px !important; }
+}
