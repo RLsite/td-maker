@@ -1,5 +1,5 @@
 // ══════════════════════════ STEP 3: SEGMENTATION ══════════════════════════
-let segSrc, segOut, segComp, segCtxS, segCtxO, segCtxC, segImgEl;
+let segSrc, segOut, segCtxS, segCtxO, segImgEl;
 const segThresholds = { front: 120, side: 120, top: 120 };
 
 function setSegView(v) {
@@ -16,17 +16,20 @@ function setSegView(v) {
 function initSeg() {
   segSrc  = document.getElementById('seg-src');
   segOut  = document.getElementById('seg-out');
-  segComp = document.getElementById('seg-computed');
   if (!segSrc || !segOut) return;
   segCtxS = segSrc.getContext('2d');
   segCtxO = segOut.getContext('2d');
-  segCtxC = segComp ? segComp.getContext('2d') : null;
 
   // Capture view now — the onload callback is async and S.segView may change before it fires.
   const myView = S.segView;
   const url = S.imgs[myView];
   if (!url) return;
   segImgEl = new Image();
+  segImgEl.onerror = () => {
+    if (myView !== S.segView) return;
+    segCtxS.clearRect(0, 0, segSrc.width, segSrc.height);
+    segCtxO.clearRect(0, 0, segOut.width, segOut.height);
+  };
   segImgEl.onload = () => {
     // Stale: user switched to a different view before this image finished loading
     if (myView !== S.segView) return;
@@ -37,7 +40,6 @@ function initSeg() {
     segOut.width = w; segOut.height = h;
     segSrc.style.width = w + 'px'; segSrc.style.height = h + 'px';
     segOut.style.width = w + 'px'; segOut.style.height = h + 'px';
-    if (segComp) { segComp.width = w; segComp.height = h; segComp.style.width = w+'px'; segComp.style.height = h+'px'; }
     segCtxS.drawImage(segImgEl, 0, 0, w, h);
     S.segImgData = segCtxS.getImageData(0, 0, w, h);
     // Sync slider from saved threshold BEFORE applyThreshold reads it.
@@ -46,6 +48,7 @@ function initSeg() {
     const valEl = document.getElementById('seg-val');
     if (sliderEl) sliderEl.value = savedT;
     if (valEl) valEl.textContent = savedT;
+    _drawSegHistogram(S.segImgData, w, h, savedT);
     applyThreshold();
   };
   segImgEl.src = url;
@@ -115,6 +118,16 @@ function segAutoSauvola() {
   S.segMasks[S.segView] = { mask, W, H };
   _updateSegMeta(S.segView, mask, W, H, segImgEl?.naturalWidth, segImgEl?.naturalHeight);
   _updateContourSegBadges();
+  const _area = mask.reduce((s,v)=>s+(v?1:0),0);
+  ctxWrite(S.segView, 'seg', { area: _area, coverage: _area/(W*H), W, H, method: 'sauvola' });
+  _computeSegScore(S.segView, mask, W, H);
+  buildObjectModel();
+  runIsoFullPipeline(() => {
+    _renderSegScoreBar(document.getElementById('seg-score-bar'));
+    for (const v of ['front','side','top']) {
+      if (S.segMasks?.[v]) _improveSegFromISO(v);
+    }
+  });
 }
 
 // ─── Fill interior holes (skimage.morphology.remove_small_holes) ─────────────
@@ -156,8 +169,8 @@ function saveSegSettings() {
 }
 
 function segMorphClean() {
-  // Erode then dilate the binary output to remove noise
-  if (!S.segImgData || !segCtxO) return;
+  // Erode then dilate the binary output to remove noise (morphological opening)
+  if (!segCtxO) return;
   const W=segOut.width, H=segOut.height;
   const imgd = segCtxO.getImageData(0,0,W,H);
   const bin = new Uint8ClampedArray(W*H);
@@ -167,6 +180,57 @@ function segMorphClean() {
   const out = segCtxO.createImageData(W,H);
   for (let i=0;i<W*H;i++) { out.data[i*4]=out.data[i*4+1]=out.data[i*4+2]=cleaned[i]; out.data[i*4+3]=255; }
   segCtxO.putImageData(out,0,0);
+  // Save cleaned mask so the contour step uses the noise-free version
+  if (!S.segMasks) S.segMasks = {};
+  S.segMasks[S.segView] = { mask: cleaned, W, H };
+  _updateSegMeta(S.segView, cleaned, W, H, segImgEl?.naturalWidth, segImgEl?.naturalHeight);
+  _computeSegScore(S.segView, cleaned, W, H);
+  _updateContourSegBadges();
+  runIsoFullPipeline(() => {
+    for (const v of ['front', 'side', 'top']) {
+      if (S.segMasks?.[v]) _improveSegFromISO(v);
+    }
+  });
+}
+
+// Draw a grayscale luminance histogram on the #seg-histogram canvas.
+// Overlays a teal vertical line at the current threshold value.
+function _drawSegHistogram(imgData, W, H, t) {
+  const hCanvas = document.getElementById('seg-histogram');
+  if (!hCanvas) return;
+  const cW = hCanvas.offsetWidth || hCanvas.width || 300;
+  hCanvas.width = cW;
+  const cH = hCanvas.height;
+  const hCtx = hCanvas.getContext('2d');
+  hCtx.clearRect(0, 0, cW, cH);
+
+  // Build histogram
+  const hist = new Int32Array(256);
+  const d = imgData.data;
+  const n = W * H;
+  for (let i = 0; i < n; i++)
+    hist[Math.round(d[i*4]*0.299 + d[i*4+1]*0.587 + d[i*4+2]*0.114)]++;
+
+  // Find max (skip 0 and 255 which are often clipped extremes)
+  let maxH = 0;
+  for (let i = 1; i < 255; i++) if (hist[i] > maxH) maxH = hist[i];
+  if (!maxH) return;
+
+  // Draw bars
+  const barW = cW / 256;
+  hCtx.fillStyle = 'rgba(148,163,184,0.55)';
+  for (let i = 0; i < 256; i++) {
+    const bH = Math.round((hist[i] / maxH) * (cH - 2));
+    hCtx.fillRect(i * barW, cH - bH, barW + 0.5, bH);
+  }
+
+  // Threshold line
+  hCtx.strokeStyle = '#2dd4bf';
+  hCtx.lineWidth   = 1.5;
+  hCtx.beginPath();
+  const tx = (t / 255) * cW;
+  hCtx.moveTo(tx, 0); hCtx.lineTo(tx, cH);
+  hCtx.stroke();
 }
 
 function applyThreshold() {
@@ -174,6 +238,7 @@ function applyThreshold() {
   document.getElementById('seg-val').textContent = t;
   segThresholds[S.segView] = t;
   if (!S.segImgData || !segCtxO) return;
+  _drawSegHistogram(S.segImgData, segOut.width, segOut.height, t);
   const src = S.segImgData.data;
   const W = segOut.width, H = segOut.height;
   const mode = segModes[S.segView] ?? 'dark';
@@ -210,121 +275,101 @@ function applyThreshold() {
   _computeSegScore(S.segView, mask, W, H);
   // Rebuild cross-view model (now also uses S.isoData if available)
   buildObjectModel();
-  // Re-run ISO pipeline in background — new ortho scale/mask may change ISO dims,
-  // then compute improved silhouette for 3rd panel
-  runIsoFullPipeline(() => {
-    _renderModelBar(document.getElementById('seg-model-bar'));
-    _renderSegScoreBar(document.getElementById('seg-score-bar'));
-    // Compute improved silhouette for EVERY view that has a raw mask,
-    // not just the currently visible one — so Contour Drawing gets Computed data for all 3 views.
-    for (const v of ['front', 'side', 'top']) {
-      if (S.segMasks?.[v]) _improveSegFromISO(v);
-    }
-  });
+  // Debounced ISO pipeline — slider drags fire applyThreshold many times per second.
+  // Only run once the user pauses for 400ms; avoids concurrent pipeline race conditions.
+  clearTimeout(applyThreshold._isoTimer);
+  applyThreshold._isoTimer = setTimeout(() => {
+    runIsoFullPipeline(() => {
+      _renderModelBar(document.getElementById('seg-model-bar'));
+      _renderSegScoreBar(document.getElementById('seg-score-bar'));
+      for (const v of ['front', 'side', 'top']) {
+        if (S.segMasks?.[v]) _improveSegFromISO(v);
+      }
+    });
+  }, 400);
 }
 
 // ── Computed silhouette (3rd panel) ───────────────────────────────────────────
-// STEP 1 (always): seal open border concavities + fill enclosed holes.
-//   This is purely self-consistent — same ortho image, just filling interior gaps
-//   (e.g. arch openings that were touching the border and thus not filled).
-// STEP 2 (only when score < 4): union with ISO face mask inside the ortho bbox.
-//   Adds pixels that the ortho segmentation missed, restricted to the object area.
-//   NEVER applied for high-quality views (score ≥ 4) — avoids wrong-perspective bleed.
+// Pipeline (all quality levels):
+//   1. Largest blob extraction  — removes noise blobs
+//   2. Morphological close      — closes small gaps inside the object
+//      (radius 4 for good views, 8 for low-quality)
+//   3. Fill enclosed holes      — removes remaining interior background pockets
+//   4. Depth veto               — hard-remove sure-background pixels if depth available
+//   5. Symmetry fill            — mirror-fill across detected axis
 function _improveSegFromISO(view) {
   const ortho = S.segMasks?.[view];
-  if (!ortho) { if (view === S.segView) _clearComputed(); return; }
+  if (!ortho) return;
   const { mask: orthoMask, W: oW, H: oH } = ortho;
 
-  // ── Step 1: seal + fill on the ortho mask itself ──────────────────────────
   const score = S.segScore?.[view] ?? 5;
+
+  // ── Step 1: keep only the largest blob ────────────────────────────────────
   const blob = findLargestBlob(orthoMask, oW, oH);
-  if (!blob || blob.length < 20) { if (view === S.segView) _clearComputed(); return; }
+  if (!blob || blob.length < 20) return;
   const blobMask = new Uint8ClampedArray(oW * oH);
   blob.forEach(i => { blobMask[i] = 255; });
 
-  // High-quality views: only fill enclosed holes — don't alter the boundary.
-  // Low-quality views: also seal border concavities (arch openings on the border).
-  const sealed = score >= 6 ? blobMask : _sealBorderConcavities(blobMask, oW, oH);
-  let improved = morphFillHoles(sealed, oW, oH);
+  // ── Step 2: morphological close to bridge small gaps ──────────────────────
+  // Radius scales with image size, capped at 4px to avoid destroying thin features
+  // (trunk, legs) — a disk close with r=8 kills any feature narrower than 16px.
+  const baseR = Math.max(1, Math.round(Math.min(oW, oH) * 0.012));
+  const closeR = Math.min(4, score < 4 ? baseR * 2 : baseR);
+  let improved = morphCloseDisk(blobMask, oW, oH, closeR);
 
-  // ── Step 2: multi-source voting for low-quality views (score < 4) ──────────
-  if (score < 4) {
-    // votes[i] accumulates evidence that pixel i belongs to the object.
-    const votes = new Uint8ClampedArray(oW * oH);
+  // ── Step 3: fill enclosed interior holes ──────────────────────────────────
+  improved = morphFillHoles(improved, oW, oH);
 
-    // Source A — raw blob (weight 1): noisy but real signal from this view's image
-    blob.forEach(i => { votes[i] += 1; });
-
-    // Source B — seal+fill mask (weight 2): cleaned version of the ortho mask
-    for (let i = 0; i < oW*oH; i++) if (improved[i]) votes[i] += 2;
-
-    // Source C — ISO face mask (weight 1): clean silhouette, different perspective
-    const isoFace = S.isoFaceMasks?.[view];
-    if (isoFace) {
-      // Find bboxes for alignment
-      let oX0=oW,oX1=0,oY0=oH,oY1=0;
-      for (let y=0;y<oH;y++) for (let x=0;x<oW;x++) {
-        if (!improved[y*oW+x]) continue;
-        if(x<oX0)oX0=x; if(x>oX1)oX1=x; if(y<oY0)oY0=y; if(y>oY1)oY1=y;
-      }
-      let fX0=isoFace.W,fX1=0,fY0=isoFace.H,fY1=0;
-      for (let y=0;y<isoFace.H;y++) for (let x=0;x<isoFace.W;x++) {
-        if (!isoFace.mask[y*isoFace.W+x]) continue;
-        if(x<fX0)fX0=x; if(x>fX1)fX1=x; if(y<fY0)fY0=y; if(y>fY1)fY1=y;
-      }
-      if (oX1>oX0 && oY1>oY0 && fX1>fX0 && fY1>fY0) {
-        const scX=(oX1-oX0)/(fX1-fX0), scY=(oY1-oY0)/(fY1-fY0);
-        for (let fy=fY0;fy<=fY1;fy++) for (let fx=fX0;fx<=fX1;fx++) {
-          if (!isoFace.mask[fy*isoFace.W+fx]) continue;
-          const ox=Math.round(oX0+(fx-fX0)*scX), oy=Math.round(oY0+(fy-fY0)*scY);
-          if (ox>=0&&ox<oW&&oy>=0&&oy<oH) votes[oy*oW+ox] += 1;
-        }
-      }
-    }
-
-    // Source D — best other orthographic view(s) projected as bbox prior (weight 1 each)
-    // If we know the object's height from the best other view, we can constrain this view.
-    const otherViews = ['front','side','top'].filter(v => v !== view);
-    for (const ov of otherViews) {
-      const otherScore = S.segScore?.[ov] ?? 0;
-      if (otherScore < 6) continue;                         // only trust high-quality views
-      const otherMask = S.segMaskImproved?.[ov] ?? S.segMasks?.[ov];
-      if (!otherMask) continue;
-      const { mask: om, W: omW, H: omH } = otherMask;
-      // Get the other view's object bbox
-      let bX0=omW,bX1=0,bY0=omH,bY1=0;
-      for (let y=0;y<omH;y++) for (let x=0;x<omW;x++) {
-        if (!om[y*omW+x]) continue;
-        if(x<bX0)bX0=x; if(x>bX1)bX1=x; if(y<bY0)bY0=y; if(y>bY1)bY1=y;
-      }
-      if (bX1<=bX0 || bY1<=bY0) continue;
-      // Project: the object should occupy a similar fraction of the canvas in this view.
-      // Map other-view's bbox proportions → this view's canvas as a rectangular prior.
-      const oX0p = Math.round((bX0/omW)*oW), oX1p = Math.round((bX1/omW)*oW);
-      const oY0p = Math.round((bY0/omH)*oH), oY1p = Math.round((bY1/omH)*oH);
-      const pad  = Math.round(Math.min(oW,oH)*0.04);
-      for (let y=Math.max(0,oY0p-pad);y<=Math.min(oH-1,oY1p+pad);y++)
-        for (let x=Math.max(0,oX0p-pad);x<=Math.min(oW-1,oX1p+pad);x++)
-          votes[y*oW+x] += 1;
-    }
-
-    // Threshold: a pixel is object if it gets ≥ 3 weighted votes.
-    // (max possible = 1+2+1+1+2 = 7; 3 = clear majority)
-    const fused = new Uint8ClampedArray(oW * oH);
-    for (let i=0;i<oW*oH;i++) if (votes[i] >= 3) fused[i] = 255;
-    // Smooth result — voting can leave salt-and-pepper; close small gaps
-    improved = morphCloseDisk(fused, oW, oH, 4);
-  }
-
-  // ── Depth: hard-remove sure-background pixels (all views, all quality levels) ─
-  // Runs AFTER voting/improvement so depth cannot accidentally remove object pixels
-  // that other sources confirmed as foreground before depth was available.
-  // Threshold 0.15 = only very far pixels (conservative to avoid false removals).
+  // ── Depth: hard-remove sure-background pixels ────────────────────────────
   if (typeof depthSureBackground === 'function') {
     const sureBg = depthSureBackground(view, oW, oH, 0.15);
-    if (sureBg) {
-      for (let i = 0; i < oW * oH; i++) {
-        if (sureBg[i]) improved[i] = 0; // hard veto — depth overrides all other sources
+    if (sureBg) for (let i = 0; i < oW*oH; i++) if (sureBg[i]) improved[i] = 0;
+  }
+
+  // ── Depth: expand mask toward sure-foreground pixels ─────────────────────
+  // Pixels that depth says are close but the mask misses → include them,
+  // only if within 4px of existing mask (avoids adding noise far from object).
+  if (typeof depthSureForeground === 'function' && typeof morphDilateDisk === 'function') {
+    const sureFg = depthSureForeground(view, oW, oH);
+    if (sureFg) {
+      const nearby = morphDilateDisk(improved, oW, oH, 4);
+      for (let i = 0; i < oW*oH; i++) if (sureFg[i] && nearby[i]) improved[i] = 255;
+    }
+  }
+
+  // ── Cross-view bbox constraint ────────────────────────────────────────────
+  // Use objectModel consensus dims to clip the mask when cross-view agreement is high.
+  // Catches contours that are significantly wider/taller than all other views indicate.
+  const _om = S.objectModel;
+  const _ppm = S.scale?.[view];
+  const _sm  = S.segMeta?.[view];
+  if (_om?.dims && _ppm && _sm?.origW) {
+    const maskPPM = _ppm * oW / _sm.origW;
+    const expW_mm = (view==='front'||view==='top') ? _om.dims.W : _om.dims.D;
+    const expH_mm = (view==='front'||view==='side') ? _om.dims.H : _om.dims.D;
+    const consW   = (view==='front'||view==='top') ? _om.consistency.W : _om.consistency.D;
+    const consH   = (view==='front'||view==='side') ? _om.consistency.H : _om.consistency.D;
+    if (expW_mm && expH_mm && maskPPM > 0) {
+      let bx1=oW, bx2=0, by1=oH, by2=0;
+      for (let y=0;y<oH;y++) for (let x=0;x<oW;x++) if (improved[y*oW+x]) {
+        if (x<bx1)bx1=x; if (x>bx2)bx2=x; if (y<by1)by1=y; if (y>by2)by2=y;
+      }
+      if (bx2>bx1) {
+        const cx=(bx1+bx2)/2, cy=(by1+by2)/2;
+        const currW=bx2-bx1, currH=by2-by1;
+        const expW_px=expW_mm*maskPPM, expH_px=expH_mm*maskPPM;
+        if (consW>0.85 && expW_px<currW*0.88) {
+          const cx1=Math.round(cx-expW_px/2), cx2=Math.round(cx+expW_px/2);
+          for (let y=0;y<oH;y++) {
+            for (let x=0;x<cx1;x++) improved[y*oW+x]=0;
+            for (let x=Math.max(0,cx2+1);x<oW;x++) improved[y*oW+x]=0;
+          }
+        }
+        if (consH>0.85 && expH_px<currH*0.88) {
+          const cy1=Math.round(cy-expH_px/2), cy2=Math.round(cy+expH_px/2);
+          for (let y=0;y<cy1;y++) for (let x=0;x<oW;x++) improved[y*oW+x]=0;
+          for (let y=Math.max(0,cy2+1);y<oH;y++) for (let x=0;x<oW;x++) improved[y*oW+x]=0;
+        }
       }
     }
   }
@@ -338,48 +383,6 @@ function _improveSegFromISO(view) {
   // ── Store ─────────────────────────────────────────────────────────────────
   if (!S.segMaskImproved) S.segMaskImproved = {};
   S.segMaskImproved[view] = { mask: improved, W: oW, H: oH };
-
-  // ── Display: only for the view currently shown on screen ──────────────────
-  if (view !== S.segView) return;
-
-  if (segCtxC && segComp && segComp.width === oW) {
-    const out = segCtxC.createImageData(oW, oH);
-    for (let i=0; i<oW*oH; i++) {
-      out.data[i*4]=out.data[i*4+1]=out.data[i*4+2]=improved[i]; out.data[i*4+3]=255;
-    }
-    segCtxC.putImageData(out, 0, 0);
-  }
-
-  // Score label — uses S.segImgData which belongs to S.segView (same as view here)
-  const lbl = document.getElementById('seg-computed-label');
-  if (lbl) {
-    const src = S.segImgData?.data;
-    let newScore = score;
-    if (src && src.length === oW * oH * 4) {
-      const gray = new Uint8ClampedArray(oW*oH);
-      for (let i=0; i<oW*oH; i++) gray[i]=src[i*4]*.299+src[i*4+1]*.587+src[i*4+2]*.114;
-      let tot=0, cnt=0;
-      for (let y=1; y<oH-1; y++) for (let x=1; x<oW-1; x++) {
-        const idx=y*oW+x; if (!improved[idx]) continue;
-        if (!improved[idx-1]||!improved[idx+1]||!improved[idx-oW]||!improved[idx+oW]) {
-          const gx=-gray[(y-1)*oW+(x-1)]+gray[(y-1)*oW+(x+1)]-2*gray[y*oW+(x-1)]+2*gray[y*oW+(x+1)]-gray[(y+1)*oW+(x-1)]+gray[(y+1)*oW+(x+1)];
-          const gy=-gray[(y-1)*oW+(x-1)]-2*gray[(y-1)*oW+x]-gray[(y-1)*oW+(x+1)]+gray[(y+1)*oW+(x-1)]+2*gray[(y+1)*oW+x]+gray[(y+1)*oW+(x+1)];
-          tot+=Math.sqrt(gx*gx+gy*gy); cnt++;
-        }
-      }
-      if (cnt) newScore=Math.min(10,Math.max(1,Math.round(tot/cnt/18)));
-    }
-    const arrow = newScore > score ? `<span style="color:#4ade80">${score}→${newScore}</span>`
-                : newScore < score ? `<span style="color:#f87171">${score}→${newScore}</span>`
-                : `<span style="color:var(--muted)">${score}</span>`;
-    lbl.innerHTML = `Computed &nbsp;${arrow}`;
-  }
-}
-
-function _clearComputed() {
-  if (segCtxC && segComp) segCtxC.clearRect(0, 0, segComp.width, segComp.height);
-  const lbl = document.getElementById('seg-computed-label');
-  if (lbl) lbl.textContent = 'Computed';
 }
 
 // ── Segmentation reliability scorer ──────────────────────────────────────────

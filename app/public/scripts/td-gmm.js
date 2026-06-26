@@ -180,15 +180,49 @@ function updateContourInfo() {
   }
 }
 
-function undoPoint() {
-  const poly = S.polys[S.contourView];
-  if (poly.closed) { poly.closed = false; } else { poly.pts.pop(); }
-  drawContour(); updateContourInfo();
+// ── Undo stack — per-view snapshots (polys + holes) ─────────────────────────
+const _undoStacks = {};
+const _UNDO_MAX = 30;
+
+function _pushUndo() {
+  const v = S.contourView;
+  if (!_undoStacks[v]) _undoStacks[v] = [];
+  _undoStacks[v].push({
+    polys: JSON.parse(JSON.stringify(S.polys[v] ?? { pts: [], closed: false })),
+    holes: JSON.parse(JSON.stringify(S.holes?.[v] ?? []))
+  });
+  if (_undoStacks[v].length > _UNDO_MAX) _undoStacks[v].shift();
+  _updateUndoBtn();
 }
 
+function _popUndo() {
+  const v = S.contourView;
+  const stack = _undoStacks[v];
+  if (!stack?.length) return;
+  const snap = stack.pop();
+  S.polys[v] = snap.polys;
+  if (!S.holes) S.holes = {};
+  S.holes[v] = snap.holes;
+  drawContour(); updateContourInfo(); persistState();
+  _updateUndoBtn();
+}
+
+function _updateUndoBtn() {
+  const btn = document.getElementById('undo-btn');
+  if (!btn) return;
+  const hasUndo = (_undoStacks[S.contourView]?.length ?? 0) > 0;
+  btn.disabled = !hasUndo;
+  btn.style.opacity = hasUndo ? '1' : '0.4';
+  btn.style.pointerEvents = hasUndo ? 'auto' : 'none';
+}
+
+function undoPoint() { _popUndo(); }
+
 function clearContour() {
+  _pushUndo();
   const view = S.contourView;
   S.polys[view] = { pts: [], closed: false }; S.mouse = null;
+  if (S.polyFragments) delete S.polyFragments[view];
   if (S.dilScale) delete S.dilScale[view];
   if (S.lastMode) delete S.lastMode[view];
   if (S.bgSamples) delete S.bgSamples[view];

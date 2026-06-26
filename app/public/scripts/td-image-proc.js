@@ -180,12 +180,17 @@ function _removeBorderConnected(obj, W, H) {
 // Like _removeBorderConnected but reverts if the result loses >60% of mask pixels.
 // Prevents accidentally removing the main object when it touches the image border
 // (e.g. side view of a large animal filling the frame).
+// TUNING: if ruler still appears in side-view contours, lower to 0.20.
+//         if elephant is unexpectedly removed on tight crops, raise to 0.50.
+const _SAFE_BORDER_SURVIVAL = 0.40;
 function _safeRemoveBorderConnected(obj, W, H) {
   let bc = 0; for (let i = 0; i < obj.length; i++) if (obj[i]) bc++;
   if (!bc) return obj;
   const trimmed = _removeBorderConnected(obj, W, H);
   let ac = 0; for (let i = 0; i < trimmed.length; i++) if (trimmed[i]) ac++;
-  return (ac >= bc * 0.40) ? trimmed : obj;
+  const survivalRate = ac / bc;
+  console.debug(`[borderRM] survival=${(survivalRate*100).toFixed(1)}% threshold=${(_SAFE_BORDER_SURVIVAL*100).toFixed(0)}% → ${survivalRate >= _SAFE_BORDER_SURVIVAL ? 'removed' : 'REVERTED'}`);
+  return survivalRate >= _SAFE_BORDER_SURVIVAL ? trimmed : obj;
 }
 
 // ── CLAHE — Contrast Limited Adaptive Histogram Equalization ──────────
@@ -335,6 +340,43 @@ function findLargestBlob(mask, W, H) {
   }
   return best;
 }
+// Returns connected components in `mask` that are NOT in `mainBlobPx`,
+// each converted to a simplified polygon in canvas-space coords.
+function _findSecondaryBlobs(mask, W, H, mainBlobPx, scaleX, scaleY) {
+  const vis = new Uint8ClampedArray(W * H);
+  if (mainBlobPx) mainBlobPx.forEach(i => { vis[i] = 1; });
+  const minArea = Math.max(50, (mainBlobPx?.length ?? 200) * 0.03);
+  const rawFrags = [];
+  for (let i = 0; i < W * H; i++) {
+    if (!mask[i] || vis[i]) continue;
+    const px = [], q = [i]; vis[i] = 1; let qi = 0;
+    while (qi < q.length) {
+      const idx = q[qi++]; px.push(idx);
+      const x = idx % W, y = (idx / W) | 0;
+      if (x > 0   && mask[idx-1] && !vis[idx-1]) { vis[idx-1]=1; q.push(idx-1); }
+      if (x < W-1 && mask[idx+1] && !vis[idx+1]) { vis[idx+1]=1; q.push(idx+1); }
+      if (y > 0   && mask[idx-W] && !vis[idx-W]) { vis[idx-W]=1; q.push(idx-W); }
+      if (y < H-1 && mask[idx+W] && !vis[idx+W]) { vis[idx+W]=1; q.push(idx+W); }
+    }
+    if (px.length < minArea) continue;
+    rawFrags.push(px);
+  }
+  rawFrags.sort((a, b) => b.length - a.length);
+  const result = [];
+  for (const blobPx of rawFrags.slice(0, 3)) {
+    const bMask = new Uint8ClampedArray(W * H);
+    blobPx.forEach(i => { bMask[i] = 255; });
+    const outer = _suzukiAbe(bMask, W, H)
+      .filter(c => !c.isHole && c.pts.length >= 4)
+      .sort((a, b) => _polyArea2D(b.pts) - _polyArea2D(a.pts))[0];
+    if (!outer) continue;
+    const step = Math.max(1, Math.floor(outer.pts.length / 200));
+    const simp = douglasPeucker(outer.pts.filter((_, j) => j % step === 0), 1.0);
+    if (simp.length < 4) continue;
+    result.push({ pts: simp.map(p => ({ x: p.x * scaleX, y: p.y * scaleY })), closed: true });
+  }
+  return result;
+}
 // ── Suzuki-Abe Border Following (CVGIP 30:32-46, 1985) ──────────────────────
 // Single scan finds outer contours + hole contours with topology.
 // Input:  mask Uint8Array/Uint8ClampedArray W×H (nonzero = object)
@@ -445,10 +487,65 @@ function mooreBoundaryTraceMask(mask, W, H) {
 // Ported logic from TECHNICAL DRAWING project:
 //   SAT border analysis → Checkerboard | Otsu | Canny
 // dilScale (incremented by 🎯 דייק button) controls morphClose radius.
+// ── Cross-view seed ───────────────────────────────────────────────────────────
+// Returns { cx, cy, rx, ry, W, H } in original-image pixels for the current view,
+// estimated from other views' segMeta bounding-boxes + objectModel dims.
+// Returns null when no usable cross-view data exists.
+function _crossViewSeed(view) {
+  // Dimension that each view exposes: [horizontal_dim, vertical_dim]
+  const viewAxes = {
+    front: ['width',  'height'],
+    side:  ['depth',  'height'],
+    top:   ['width',  'depth'],
+  };
+  const [myA, myB] = viewAxes[view] ?? ['width', 'height'];
+
+  const knownMm = {};   // { width, height, depth } — values in mm
+
+  // Source 1: objectModel (most authoritative if already computed)
+  const od = S.objectModel?.dims;
+  if (od) {
+    if (od.W)  knownMm.width  = od.W;
+    if (od.H)  knownMm.height = od.H;
+    if (od.D)  knownMm.depth  = od.D;
+  }
+
+  // Source 2: other views' segMeta bbox (works even before objectModel is built)
+  for (const [v, [dA, dB]] of Object.entries(viewAxes)) {
+    if (v === view) continue;
+    const sm  = S.segMeta?.[v];
+    const ppm = S.scale?.[v];
+    if (!sm?.bbox || !ppm) continue;
+    const { bbox, W: mW, H: mH, origW: oW, origH: oH } = sm;
+    const wMm = (bbox.maxX - bbox.minX) * (oW ?? mW) / mW / ppm;
+    const hMm = (bbox.maxY - bbox.minY) * (oH ?? mH) / mH / ppm;
+    if (wMm > 0 && !knownMm[dA]) knownMm[dA] = wMm;
+    if (hMm > 0 && !knownMm[dB]) knownMm[dB] = hMm;
+  }
+
+  const wMm = knownMm[myA];
+  const hMm = knownMm[myB];
+  if (!wMm && !hMm) return null;   // genuinely no data — fall through to PATH B
+
+  // Get this view's image dimensions from segMeta or fall back to upload constraints
+  const mySm = S.segMeta?.[view];
+  const imgW = mySm?.origW ?? mySm?.W ?? 900;
+  const imgH = mySm?.origH ?? mySm?.H ?? 700;
+
+  // Convert mm → px using current view's PPM; fall back to 40% of image dimension
+  const ppm = S.scale?.[view];
+  const rx = ppm && wMm ? Math.min((wMm * ppm) / 2, imgW * 0.45) : imgW * 0.35;
+  const ry = ppm && hMm ? Math.min((hMm * ppm) / 2, imgH * 0.45) : imgH * 0.35;
+
+  return { cx: imgW / 2, cy: imgH / 2, rx, ry, W: imgW, H: imgH };
+}
+
 function autoDetectContour() {
   const view = S.contourView;
   const url = S.imgs[view];
   if (!url) return alert('Please upload an image first');
+  _pushUndo();
+  showProcessing('Detecting contour…');
 
   // ── PATH A: saved segmentation mask from Step 2 (always preferred when available) ──
   // Prefer the Computed (ISO-improved + sealed/filled) mask; fall back to raw.
@@ -458,6 +555,54 @@ function autoDetectContour() {
   const savedSeg    = improvedSeg ?? rawSeg;
   if (savedSeg) {
     _contourFromSegMask(savedSeg.mask, savedSeg.W, savedSeg.H);
+    return;
+  }
+
+  // ── PATH A.5: cross-view seed — no mask for this view, but other views have data ──
+  // Query other views' segMeta + scale to estimate object size in this view.
+  // Rasterises an ellipse of that size and feeds it through _finishContourFromMask
+  // (Suzuki-Abe → smooth → snap) so real image edges pull the ellipse into shape.
+  const seed = _crossViewSeed(view);
+  if (seed) {
+    const img = new Image();
+    img.onerror = () => hideProcessing();
+    img.onload = () => {
+      if (view !== S.contourView) { hideProcessing(); return; }
+      const maxW = 900, maxH = 700;
+      const r  = Math.min(maxW / img.width, maxH / img.height, 1);
+      const sW = Math.round(img.width  * r);
+      const sH = Math.round(img.height * r);
+      const tmpC = document.createElement('canvas');
+      tmpC.width = sW; tmpC.height = sH;
+      const tmpCtx = tmpC.getContext('2d');
+      tmpCtx.drawImage(img, 0, 0, sW, sH);
+      const px   = tmpCtx.getImageData(0, 0, sW, sH).data;
+      const gray = new Uint8ClampedArray(sW * sH);
+      for (let i = 0; i < sW * sH; i++)
+        gray[i] = px[i*4]*0.299 + px[i*4+1]*0.587 + px[i*4+2]*0.114;
+
+      // Rasterise seed ellipse at working scale
+      const obj = new Uint8ClampedArray(sW * sH);
+      const cx = seed.cx * sW / seed.W;
+      const cy = seed.cy * sH / seed.H;
+      const rx = seed.rx * sW / seed.W;
+      const ry = seed.ry * sH / seed.H;
+      for (let y = 0; y < sH; y++) {
+        for (let x = 0; x < sW; x++) {
+          const dx = (x - cx) / rx, dy = (y - cy) / ry;
+          if (dx*dx + dy*dy <= 1) obj[y * sW + x] = 255;
+        }
+      }
+
+      try {
+        _finishContourFromMask(obj, sW, sH, r, gray, 12);
+      } catch(e) {
+        hideProcessing();
+        console.error('[contour] PATH A.5 failed:', e);
+        alert('Contour detection failed — please try again');
+      }
+    };
+    img.src = url;
     return;
   }
 
@@ -471,7 +616,9 @@ function autoDetectContour() {
   const tmpC = document.createElement('canvas');
   const tmpCtx = tmpC.getContext('2d');
   const img = new Image();
+  img.onerror = () => hideProcessing();
   img.onload = () => {
+    if (view !== S.contourView) { hideProcessing(); return; }
     const maxW=900, maxH=700;
     const r=Math.min(maxW/img.width, maxH/img.height, 1);
     tmpC.width=Math.round(img.width*r); tmpC.height=Math.round(img.height*r);
@@ -527,7 +674,13 @@ function autoDetectContour() {
     }
 
     // Pass gray to _finishContourFromMask for edge snapping
-    _finishContourFromMask(obj,W,H,r,gray);
+    try {
+      _finishContourFromMask(obj,W,H,r,gray);
+    } catch(e) {
+      hideProcessing();
+      console.error('[contour] PATH B failed:', e);
+      alert('Contour detection failed — please try again');
+    }
   };
   img.src=url;
 }
@@ -546,8 +699,25 @@ function refineContour() {
 // Move each polygon vertex to the strongest gradient along its outward normal.
 // searchR: pixels to search each side. Aligns the contour to the actual physical edge.
 function _snapToEdges(pts, gray, W, H, searchR) {
-  // Depth gradient (optional): blended with color gradient for cleaner edge snapping.
-  // depthGradient() is defined in td-depth.js and returns null if no depth map available.
+  // Precompute Sobel components for bilinear sub-pixel sampling.
+  // Divide by 4 to keep values in [-255,255] (same scale as simple central difference)
+  // so NORM=130000 stays valid for the depth-blend path.
+  const gxF = new Float32Array(W * H);
+  const gyF = new Float32Array(W * H);
+  for (let y = 1; y < H-1; y++) for (let x = 1; x < W-1; x++) {
+    gxF[y*W+x] = (-gray[(y-1)*W+x-1] + gray[(y-1)*W+x+1]
+                  -2*gray[y*W+x-1]    + 2*gray[y*W+x+1]
+                  -gray[(y+1)*W+x-1]  + gray[(y+1)*W+x+1]) / 4;
+    gyF[y*W+x] = (-gray[(y-1)*W+x-1] - 2*gray[(y-1)*W+x] - gray[(y-1)*W+x+1]
+                  +gray[(y+1)*W+x-1]  + 2*gray[(y+1)*W+x] + gray[(y+1)*W+x+1]) / 4;
+  }
+  const bilSample = (arr, fx, fy) => {
+    const x0 = fx|0, y0 = fy|0;
+    const dx = fx-x0, dy = fy-y0;
+    return arr[y0*W+x0]*(1-dx)*(1-dy) + arr[y0*W+x0+1]*dx*(1-dy) +
+           arr[(y0+1)*W+x0]*(1-dx)*dy + arr[(y0+1)*W+x0+1]*dx*dy;
+  };
+
   const dGrad = (typeof depthGradient === 'function')
     ? depthGradient(S.contourView, W, H)
     : null;
@@ -557,29 +727,26 @@ function _snapToEdges(pts, gray, W, H, searchR) {
     const next = pts[(i+1)%pts.length];
     const tx=next.x-prev.x, ty=next.y-prev.y;
     const len=Math.sqrt(tx*tx+ty*ty)||1;
-    const nx=-ty/len, ny=tx/len;  // outward normal
+    const nx=-ty/len, ny=tx/len;
 
     let bestG=-1, bestX=p.x, bestY=p.y;
-    for (let d=-searchR; d<=searchR; d++) {
-      const cx=Math.round(p.x+nx*d), cy=Math.round(p.y+ny*d);
-      if (cx<1||cx>=W-1||cy<1||cy>=H-1) continue;
-      const gx=gray[cy*W+cx+1]-gray[cy*W+cx-1];
-      const gy=gray[(cy+1)*W+cx]-gray[(cy-1)*W+cx];
-      let g = gx*gx+gy*gy;
-      // Adaptive depth blend: normalize both gradients to [0,1] then blend.
-      // Where color is weak, raise depth weight (90%); where color is strong, use 10% depth.
-      // dGrad values are in [0,~360] (sqrt(gx²+gy²)*255 of depth∈[0,1]) → max² ≈ 130000.
-      // Color g is also squared magnitude in [0,~130000] — same normalization constant works.
+    for (let d=-searchR; d<=searchR; d+=0.5) {  // 0.5px sub-pixel steps
+      const fx=p.x+nx*d, fy=p.y+ny*d;
+      if (fx<1||fx>=W-2||fy<1||fy>=H-2) continue;
+      const gx = bilSample(gxF, fx, fy);
+      const gy = bilSample(gyF, fx, fy);
+      let g = gx*gx + gy*gy;
       if (dGrad) {
-        const dg = dGrad[cy*W+cx];
+        const ix=Math.round(fx), iy=Math.round(fy);
+        const dg = dGrad[Math.min(iy,H-1)*W+Math.min(ix,W-1)];
         const NORM = 130000;
-        const cNorm = g / NORM;               // normalized color gradient [0,1]
-        const dNorm = (dg * dg) / NORM;       // normalized depth gradient [0,1]
-        const colorW = Math.min(1, cNorm * 5); // 0→weak, 1→strong (threshold ~20% of max)
-        const depthW = 0.10 + (1 - colorW) * 0.80; // 10% at strong color, 90% at no color
+        const cNorm = g / NORM;
+        const dNorm = (dg * dg) / NORM;
+        const colorW = Math.min(1, cNorm * 5);
+        const depthW = 0.10 + (1 - colorW) * 0.80;
         g = NORM * ((1 - depthW) * cNorm + depthW * dNorm);
       }
-      if (g>bestG) { bestG=g; bestX=cx; bestY=cy; }
+      if (g>bestG) { bestG=g; bestX=fx; bestY=fy; }
     }
     return {x:bestX, y:bestY};
   });
@@ -650,7 +817,13 @@ function _contourFromSegMask(mask, mW, mH) {
 
   // Load original image at same working size for bg-sample filtering + edge snapping
   const img = new Image();
+  img.onerror = () => hideProcessing();
   img.onload = () => {
+    // Stale check: user switched views while the image was loading — discard result.
+    // _finishContourFromMask reads S.contourView internally, so running it now would
+    // write to the wrong view's polygon.
+    if (view !== S.contourView) { hideProcessing(); return; }
+
     const tmpC=document.createElement('canvas'); tmpC.width=sW; tmpC.height=sH;
     const tmpCtx=tmpC.getContext('2d'); tmpCtx.drawImage(img,0,0,sW,sH);
     const px=tmpCtx.getImageData(0,0,sW,sH).data;
@@ -671,9 +844,15 @@ function _contourFromSegMask(mask, mW, mH) {
       }
     }
 
-    // searchR=2 (not 6): mask already defines the boundary, a small snap is enough.
-    // Large searchR causes ruler/background edges to steal contour points away from the object.
-    _finishContourFromMask(obj, sW, sH, r, gray, 2);
+    // searchR=5: enough to pull the smoothed contour onto the real image edge
+    // without drifting onto the ruler (ruler is already removed from the mask).
+    try {
+      _finishContourFromMask(obj, sW, sH, r, gray, 5);
+    } catch(e) {
+      hideProcessing();
+      console.error('[contour] _contourFromSegMask failed:', e);
+      alert('Contour detection failed — please try again');
+    }
   };
   img.src = url;
 }
@@ -793,6 +972,157 @@ function _adaptiveQualitySmooth(pts, W, H, regions) {
   });
 }
 
+// ── Ray-casting point-in-polygon ─────────────────────────────────────────────
+function _ptInPoly(x, y, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const xi = pts[i].x, yi = pts[i].y;
+    const xj = pts[j].x, yj = pts[j].y;
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi))
+      inside = !inside;
+  }
+  return inside;
+}
+
+// ── Cross-view: fix outer contour that penetrates a hole ─────────────────────
+// Any outer-contour vertex found inside a hole polygon is snapped to the nearest
+// point on that hole's boundary edge.
+function _fixContourHolePenetration(view) {
+  const poly  = S.polys?.[view];
+  const holes = S.holes?.[view];
+  if (!poly?.pts?.length || !holes?.length) return;
+
+  let fixed = 0;
+  for (const hole of holes) {
+    if (hole.length < 3) continue;
+    for (const pt of poly.pts) {
+      if (!_ptInPoly(pt.x, pt.y, hole)) continue;
+      // Snap to nearest point on hole boundary
+      let bestD = Infinity, bestX = pt.x, bestY = pt.y;
+      for (let i = 0; i < hole.length; i++) {
+        const a = hole[i], b = hole[(i+1) % hole.length];
+        // Closest point on segment a→b
+        const dx = b.x-a.x, dy = b.y-a.y;
+        const len2 = dx*dx + dy*dy;
+        const t = len2 > 0 ? Math.max(0, Math.min(1, ((pt.x-a.x)*dx + (pt.y-a.y)*dy) / len2)) : 0;
+        const cx = a.x + t*dx, cy = a.y + t*dy;
+        const d = (pt.x-cx)**2 + (pt.y-cy)**2;
+        if (d < bestD) { bestD = d; bestX = cx; bestY = cy; }
+      }
+      pt.x = bestX; pt.y = bestY;
+      fixed++;
+    }
+  }
+  if (fixed) console.log(`[contour] hole-penetration fix: ${fixed} vertices snapped`);
+}
+
+// ── Cross-view: check contour is within expected object bounds ────────────────
+// Uses objectModel.dims + current-view scale to compute expected bbox size.
+// If contour bbox exceeds 1.6× expected in width OR height, the contour likely
+// traced background noise — re-simplify the pts array in-place.
+function _crossViewCheckBounds(view, pts, _W, _H, r) {
+  if (!pts || pts.length < 3) return;
+  const od  = S.objectModel?.dims;
+  const ppm = S.scale?.[view];
+  if (!od || !ppm || !r) return;
+
+  const viewAxes = { front: ['W','H'], side: ['D','H'], top: ['W','D'] };
+  const [dA, dB] = viewAxes[view] ?? ['W','H'];
+  const aMm = od[dA], bMm = od[dB];
+  if (!aMm || !bMm) return;
+
+  const expectedWpx = aMm * ppm * r;  // expected width in working-space px
+  const expectedHpx = bMm * ppm * r;
+
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const actualW = Math.max(...xs) - Math.min(...xs);
+  const actualH = Math.max(...ys) - Math.min(...ys);
+
+  const wRatio = actualW / expectedWpx;
+  const hRatio = actualH / expectedHpx;
+
+  if (wRatio > 1.6 || hRatio > 1.6) {
+    console.warn(`[contour] bounds check: ${Math.round(actualW)}×${Math.round(actualH)}px vs expected ~${Math.round(expectedWpx)}×${Math.round(expectedHpx)}px — re-simplifying`);
+    const tightened = douglasPeucker(pts, 3.0);
+    pts.length = 0;
+    tightened.forEach(p => pts.push(p));
+  }
+}
+
+// ── Cross-view: prune spurious holes ─────────────────────────────────────────
+// Two-pass validation:
+// 1. If segMeta for this view says the mask has no holes → clear all phantom holes.
+// 2. If other closed views have fewer holes → prune to their max.
+function _crossViewPruneHoles(view) {
+  if (!S.holes?.[view]?.length) return;
+
+  // Hard constraint from segmentation mask: if no holes exist in the mask, any
+  // hole found by contour fitting is an artifact (contour drifted outside silhouette).
+  const knownHoles = S.segMeta?.[view]?.holeCount;
+  if (knownHoles === 0) {
+    console.log(`[contour] segMeta confirms no holes for ${view} — clearing ${S.holes[view].length} phantom hole(s)`);
+    S.holes[view] = [];
+    return;
+  }
+
+  // Soft constraint from other views: don't have significantly more holes than peers.
+  const myHoles = S.holes[view];
+  const otherCounts = ['front', 'side', 'top']
+    .filter(v => v !== view && S.polys?.[v]?.closed)
+    .map(v => (S.holes?.[v] ?? []).length);
+
+  if (!otherCounts.length) return;
+
+  const maxExpected = Math.max(...otherCounts) + 1;
+  if (myHoles.length <= maxExpected) return;
+
+  console.log(`[contour] cross-view holes: expected ≤${maxExpected}, got ${myHoles.length} — pruning`);
+  S.holes[view] = myHoles
+    .map(h => ({ pts: h, area: Math.abs(_polyArea2D(h)) }))
+    .sort((a, b) => b.area - a.area)
+    .slice(0, Math.max(0, maxExpected))
+    .map(h => h.pts);
+}
+
+// ── Cross-view: check contour perimeter against objectModel ───────────────────
+// pts are in working-space coords (W×H); r = working/original scale.
+// If actual perimeter > 2.5× the expected ellipse perimeter, the contour
+// likely traced background noise — re-simplify aggressively.
+function _crossViewCheckPerimeter(view, pts, _W, _H, r) {
+  if (!pts || pts.length < 3) return;
+
+  const od   = S.objectModel?.dims;
+  const ppm  = S.scale?.[view];
+  if (!od || !ppm || !r) return;
+
+  const viewAxes = { front: ['W','H'], side: ['D','H'], top: ['W','D'] };
+  const [dA, dB] = viewAxes[view] ?? ['W','H'];
+  const aMm = od[dA], bMm = od[dB];
+  if (!aMm || !bMm) return;
+
+  // Ramanujan perimeter of expected bounding ellipse (semi-axes = half dims)
+  const a = aMm / 2, b = bMm / 2;
+  const h = ((a - b) / (a + b)) ** 2;
+  const expectedMm = Math.PI * (a + b) * (1 + 3*h / (10 + Math.sqrt(4 - 3*h)));
+
+  // Actual perimeter in mm (working-space px → original px → mm)
+  let perimPx = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i], q = pts[(i+1) % pts.length];
+    perimPx += Math.sqrt((q.x-p.x)**2 + (q.y-p.y)**2);
+  }
+  const actualMm = perimPx / (ppm * r);
+
+  const ratio = actualMm / expectedMm;
+  if (ratio > 2.5) {
+    console.warn(`[contour] cross-view perim: ${Math.round(actualMm)}mm vs expected ~${Math.round(expectedMm)}mm (ratio ${ratio.toFixed(1)}) — re-simplifying`);
+    // Aggressively re-simplify to remove the noise spike chain
+    const resimplified = douglasPeucker(pts, 4.0);
+    pts.length = 0;
+    resimplified.forEach(p => pts.push(p));
+  }
+}
+
 // Pure contour extraction from a binary mask — no side effects on S.*
 // Returns { pts, W, H } in mask-local coordinates, or null if nothing found.
 // Used by ISO pipeline to build per-face contour templates.
@@ -855,32 +1185,28 @@ function _sealBorderConcavities(mask, W, H) {
   }
   if (maxX<=minX || maxY<=minY) return result;
 
-  // Seal a row: fill between leftmost and rightmost white pixel — but only when they are
-  // dense enough (≥40% fill ratio). Sparse rows = animal legs at opposite ends of the
-  // image; dense rows = arch opening with most of the row already filled.
+  // Seal a row only when it is almost fully filled (≥65% density).
+  // 65% catches true arch openings (table underside, horseshoe) while leaving
+  // sparse rows like the gap between animal legs untouched.
   function sealRow(y) {
     let l=W, r=-1, cnt=0;
     for (let x=minX; x<=maxX; x++) if (mask[y*W+x]) { if(x<l)l=x; if(x>r)r=x; cnt++; }
     if (r < l) return;
-    if (cnt < (r - l + 1) * 0.40) return; // gap too large — likely space between legs
+    if (cnt < (r - l + 1) * 0.65) return;
     for (let x=l; x<=r; x++) result[y*W+x]=255;
   }
-  // Seal a column: same density guard
   function sealCol(x) {
     let t=H, b=-1, cnt=0;
     for (let y=minY; y<=maxY; y++) if (mask[y*W+x]) { if(y<t)t=y; if(y>b)b=y; cnt++; }
     if (b < t) return;
-    if (cnt < (b - t + 1) * 0.40) return;
+    if (cnt < (b - t + 1) * 0.65) return;
     for (let y=t; y<=b; y++) result[y*W+x]=255;
   }
 
-  // Seal bottom (most common: arch openings open downward)
-  for (let y=maxY; y>=Math.max(minY, maxY-2); y--) sealRow(y);
-  // Seal top (less common but handle symmetrically)
-  for (let y=minY; y<=Math.min(maxY, minY+2); y++) sealRow(y);
-  // Seal left and right edges
-  for (let x=minX; x<=Math.min(maxX, minX+2); x++) sealCol(x);
-  for (let x=maxX; x>=Math.max(minX, maxX-2); x--) sealCol(x);
+  // Only seal the single extreme row/column — avoids false-sealing concavities
+  // that are several rows deep (like the arch under a table with thick legs).
+  sealRow(maxY); sealRow(minY);
+  sealCol(minX); sealCol(maxX);
 
   return result;
 }
@@ -903,7 +1229,7 @@ function _finishContourFromMask(obj, W, H, _r, gray, snapR = 6) {
     const fallMask = new Uint8ClampedArray(W*H);
     for (let i=0; i<W*H; i++) if (obj[i] > 128 || obj[i] > thresh) fallMask[i]=255;
     const fb = findLargestBlob(fallMask, W, H);
-    if (!fb) { alert('Could not find contour — try adjusting sensitivity'); return; }
+    if (!fb) { hideProcessing(); alert('Could not find contour — try adjusting sensitivity'); return; }
     blobMask = new Uint8ClampedArray(W*H);
     fb.forEach(i => blobMask[i] = 255);
   }
@@ -924,12 +1250,24 @@ function _finishContourFromMask(obj, W, H, _r, gray, snapR = 6) {
   // ── Outer contour: from the hole-free filled mask ─────────────────────────
   const outerContours = _suzukiAbe(filledMask, W, H);
   const outers = outerContours.filter(c => !c.isHole && c.pts.length >= 4);
-  if (!outers.length) { alert('Could not detect contour'); return; }
+  if (!outers.length) { hideProcessing(); alert('Could not detect contour'); return; }
   const outerPts = outers.reduce((a, b) => b.pts.length > a.pts.length ? b : a).pts;
 
+  // Subsample pixel-level trace to ≤2500 pts, then smooth out staircase artefacts
+  // before D-P.  Without smoothing, D-P at eps=0.4 keeps every staircase step;
+  // with smoothing the diagonal steps merge into a clean curve and D-P removes them.
   const step = Math.max(1, Math.floor(outerPts.length / 2500));
   const sub  = outerPts.filter((_, i) => i % step === 0);
-  let simplified = douglasPeucker(sub, 0.4);
+
+  // Smooth staircase artefacts first, then detect corners on clean data.
+  // Running corner detection on the raw pixel trace produces false corners
+  // at every horizontal/vertical staircase step.
+  const smoothed = _laplacianSmooth(sub, 10, 0.5);
+  const cornerSet = _detectCorners(smoothed, 45);
+  const cornerPts = [...cornerSet].map(i => ({ x: smoothed[i].x, y: smoothed[i].y }));
+
+  let simplified = douglasPeucker(smoothed, 2.0);
+  simplified = _reinsertCorners(simplified, cornerPts, 4);
 
   // ── Adaptive quality-driven post-processing ───────────────────────────────
   // segRegions[v] carries per-quadrant reliability scores (1–10, 10 = best).
@@ -970,10 +1308,16 @@ function _finishContourFromMask(obj, W, H, _r, gray, snapR = 6) {
     updateContourInfo();
     if (!S.polyCanvasSize) S.polyCanvasSize = {};
     S.polyCanvasSize[S.contourView] = { w: cC ? cC.width : W, h: cC ? cC.height : H };
+    hideProcessing();
     drawContour();
     persistState();
     return;
   }
+
+  // Cross-view checks run on `simplified` (working-space) BEFORE it is committed
+  // to S.polys.  Running them after the .map() copy would be a stale mutation.
+  _crossViewCheckPerimeter(S.contourView, simplified, W, H, _r);
+  _crossViewCheckBounds(S.contourView, simplified, W, H, _r);
 
   if (!cC) initContour();
   const scaleX = cC ? cC.width/W : 1;
@@ -1000,6 +1344,15 @@ function _finishContourFromMask(obj, W, H, _r, gray, snapR = 6) {
       return hSimp.map(p => ({ x: p.x*scaleX, y: p.y*scaleY }));
     })
     .filter(h => h.length >= 3);
+
+  // ── Cross-view validation (holes only — perimeter/bounds ran earlier) ────────
+  _crossViewPruneHoles(S.contourView);
+
+  // Expose secondary disconnected blobs as draggable merge fragments
+  if (!S.polyFragments) S.polyFragments = {};
+  const _secFrags = _findSecondaryBlobs(obj, W, H, blob, scaleX, scaleY);
+  if (_secFrags.length) S.polyFragments[S.contourView] = _secFrags;
+  else delete S.polyFragments[S.contourView];
 
   _applyContourTargetPts();
 
@@ -1054,7 +1407,14 @@ function _finishContourFromMask(obj, W, H, _r, gray, snapR = 6) {
     });
   }
 
+  hideProcessing();
   drawContour();
+  persistState();  // save immediately so contour survives refresh even if snake never runs
+  // Run snake quietly to pull the smoothed contour onto real image edges.
+  // Capture view now — user may switch views before the timeout fires.
+  const _snakeView = S.contourView;
+  setTimeout(() => _runSnakeAuto(_snakeView), 0);
+
   // Update Step 3 model bar with cross-view check result
   const _modelBar = document.getElementById('model-bar');
   if (_modelBar) {
@@ -1151,6 +1511,77 @@ function resampleContour(targetN) {
   const sel = document.getElementById('pts-count-sel');
   if (sel) sel.value = String(targetN);
   drawContour(); updateContourInfo(); persistState();
+}
+
+// Laplacian smoothing of a closed polygon.
+// Each pass replaces every point with a weighted average of itself and its two neighbours.
+// alpha=0.5 → standard Laplacian. Run 8-12 passes to remove pixel staircase artefacts
+// without noticeably shrinking the polygon (Taubin's dual-pass avoids shrinkage: see below).
+// locked: optional Set of indices whose position must not change (corner anchors)
+function _laplacianSmooth(pts, passes, alpha, locked) {
+  if (pts.length < 4) return pts;
+  alpha = alpha ?? 0.5;
+  let out = pts.map(p => ({ x: p.x, y: p.y }));
+  const w0 = 1 - alpha, wN = alpha / 2;
+  for (let pass = 0; pass < passes; pass++) {
+    const n = out.length;
+    const tmp = new Array(n);
+    for (let i = 0; i < n; i++) {
+      if (locked?.has(i)) { tmp[i] = { x: out[i].x, y: out[i].y }; continue; }
+      const prev = out[(i - 1 + n) % n];
+      const next = out[(i + 1) % n];
+      tmp[i] = { x: out[i].x * w0 + (prev.x + next.x) * wN,
+                 y: out[i].y * w0 + (prev.y + next.y) * wN };
+    }
+    out = tmp;
+  }
+  return out;
+}
+
+// Detect sharp direction changes in a closed polygon.
+// Returns a Set of indices where the turning angle >= minAngleDeg.
+// Uses an adaptive window to suppress pixel-staircase noise.
+function _detectCorners(pts, minAngleDeg = 45) {
+  const N = pts.length;
+  if (N < 6) return new Set();
+  const W = Math.max(5, Math.floor(N / 40));
+  // cos threshold: a turn ≥ minAngleDeg means the angle between v1 and v2 is ≤ (180−min)
+  const cosThresh = Math.cos((180 - minAngleDeg) * Math.PI / 180);
+  const corners = new Set();
+  for (let i = 0; i < N; i++) {
+    const a = pts[(i - W + N) % N];
+    const b = pts[i];
+    const c = pts[(i + W) % N];
+    const v1x = b.x - a.x, v1y = b.y - a.y;
+    const v2x = c.x - b.x, v2y = c.y - b.y;
+    const len1 = Math.sqrt(v1x*v1x + v1y*v1y);
+    const len2 = Math.sqrt(v2x*v2x + v2y*v2y);
+    if (len1 < 2 || len2 < 2) continue;
+    const cos = (v1x*v2x + v1y*v2y) / (len1 * len2);
+    if (cos < cosThresh) corners.add(i);
+  }
+  return corners;
+}
+
+// After D-P simplification, ensure every corner point still appears.
+// Any corner dropped by D-P is re-inserted onto the nearest polygon segment.
+function _reinsertCorners(simplified, cornerPts, snapDist = 4) {
+  let result = simplified.slice();
+  for (const cp of cornerPts) {
+    const snap2 = snapDist * snapDist;
+    if (result.some(p => (p.x-cp.x)**2 + (p.y-cp.y)**2 < snap2)) continue;
+    let bestD = Infinity, bestIdx = 0;
+    for (let i = 0; i < result.length; i++) {
+      const a = result[i], b = result[(i+1) % result.length];
+      const dx = b.x-a.x, dy = b.y-a.y;
+      const len2 = dx*dx + dy*dy;
+      const t = len2 > 0 ? Math.max(0, Math.min(1, ((cp.x-a.x)*dx+(cp.y-a.y)*dy)/len2)) : 0;
+      const d = (cp.x-a.x-t*dx)**2 + (cp.y-a.y-t*dy)**2;
+      if (d < bestD) { bestD = d; bestIdx = i; }
+    }
+    result.splice(bestIdx + 1, 0, { x: cp.x, y: cp.y });
+  }
+  return result;
 }
 
 function douglasPeucker(pts, eps) {
@@ -1272,6 +1703,20 @@ function morphOpenDisk(mask, W, H, r) {
   return out;
 }
 
+// Morphological dilation with disk SE — standalone (first half of morphCloseDisk)
+function morphDilateDisk(mask, W, H, r) {
+  const offs = _diskOffsets(r);
+  const out  = new Uint8ClampedArray(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!mask[y * W + x]) continue;
+    for (const [dx, dy] of offs) {
+      const nx = x + dx, ny = y + dy;
+      if (nx >= 0 && nx < W && ny >= 0 && ny < H) out[ny * W + nx] = 255;
+    }
+  }
+  return out;
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // SYMMETRY DETECTION & APPLICATION
 // ════════════════════════════════════════════════════════════════════════════
@@ -1366,10 +1811,13 @@ function detectMaskSymmetry(mask, W, H) {
     if (s > bestH) { bestH = s; bestHAx = cy0 + dy; }
   }
 
+  // TUNING: raise to 0.82 if false positives occur (non-symmetric views wrongly mirrored).
+  //         lower to 0.75 if symmetric views are missed (score just below threshold).
   const THRESH = 0.78;
-  const ALIGN_THRESH = 0.80; // paired columns/rows must have pixels at similar positions
+  const ALIGN_THRESH = 0.80;
   // Store mW/mH so callers can convert axis to any target coordinate system via
   //   axisInTarget = (dir==='v') ? sym.axis / sym.mW * targetW : sym.axis / sym.mH * targetH
+  console.debug(`[symmetry] bestV=${bestV.toFixed(3)} bestH=${bestH.toFixed(3)} thresh=${THRESH}`);
   if (bestV >= bestH && bestV >= THRESH && vAlignScore(bestVAx) >= ALIGN_THRESH)
     return { axis: bestVAx, score: bestV, dir: 'v', mW: W, mH: H };
   if (bestH >  bestV && bestH >= THRESH && hAlignScore(bestHAx) >= ALIGN_THRESH)
@@ -1452,7 +1900,7 @@ function applyContourSymmetry(pts, sym, gray, W, H) {
 
     // Mirror the stronger half onto the weaker half
     const strongSide = gLeft >= gRight ? left : right;
-    const sign = gLeft >= gRight ? 1 : -1;  // mirror direction
+    // mirror direction: strongSide already selects the correct half
 
     const mirrored = strongSide.map(s => ({
       x: 2 * ax - s.p.x,

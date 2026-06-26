@@ -148,6 +148,7 @@ function _rebuildSegMasks() {
     const url = S.imgs[v];
     if (!url) { next(); return; }
     const img = new Image();
+    img.onerror = () => next();  // skip this view and continue with the rest
     img.onload = () => {
       const maxW=900, maxH=700;
       const r=Math.min(maxW/img.width, maxH/img.height, 1);
@@ -163,7 +164,7 @@ function _rebuildSegMasks() {
       }
       if (!S.segMasks) S.segMasks={};
       S.segMasks[v]={mask,W,H};
-      _updateSegMeta(v, mask, W, H);
+      _updateSegMeta(v, mask, W, H, img.width, img.height);
       _updateContourSegBadges();
       // If the user is already on the contour step, refresh the background composite
       // so the teal silhouette overlay appears immediately without manual action.
@@ -312,11 +313,24 @@ function buildObjectModel() {
     return { val, src: best === entries[0] ? 'A' : best === entries[1] ? 'B' : 'ISO' };
   }
 
-  const mH = wMerge3(fH, scFH, sH, scSH, isoH, isoSH);
-  const mW = wMerge3(fW, scFW, tW, scTW, isoW, isoSW);
-  const mD = wMerge3(sW, scSW, tH, scTH, isoDD, isoSD);
+  // Auto-detect top-view 90° rotation using cross-view consistency.
+  // Two hypotheses:
+  //   Normal : image X = W (≈ fW),  image Y = D (≈ sW)
+  //   Rotated: image X = D (≈ sW),  image Y = W (≈ fW)
+  // Pick whichever hypothesis gives smaller total residual.
+  let topTrueW = tW, topTrueD = tH;
+  if (tW != null && tH != null && (fW != null || sW != null)) {
+    const scoreNormal  = (fW != null ? Math.abs(tW - fW) : 0) + (sW != null ? Math.abs(tH - sW) : 0);
+    const scoreRotated = (fW != null ? Math.abs(tH - fW) : 0) + (sW != null ? Math.abs(tW - sW) : 0);
+    S.topRotated90 = scoreRotated < scoreNormal;
+    if (S.topRotated90) { topTrueW = tH; topTrueD = tW; }
+  }
 
-  const cH = agree(fH, sH), cW = agree(fW, tW), cD = agree(sW, tH);
+  const mH = wMerge3(fH, scFH, sH, scSH, isoH, isoSH);
+  const mW = wMerge3(fW, scFW, topTrueW, scTW, isoW, isoSW);
+  const mD = wMerge3(sW, scSW, topTrueD, scTH, isoDD, isoSD);
+
+  const cH = agree(fH, sH), cW = agree(fW, topTrueW), cD = agree(sW, topTrueD);
   const THRESH = 0.82;
   const issues = [];
   if (cH !== null && cH < THRESH) issues.push({ dim:'H', views:'Front↔Side', a:Math.round(fH), b:Math.round(sH) });
@@ -331,9 +345,9 @@ function buildObjectModel() {
                  D: mD.src === 'A' ? 'side'  : 'top' },
     consistency: { H: cH, W: cW, D: cD },
     perView: {
-      front: { wMm: fW, hMm: fH, ppm: pF, score: sF },
-      side:  { wMm: sW, hMm: sH, ppm: pS, score: sS },
-      top:   { wMm: tW, hMm: tH, ppm: pT, score: sT },
+      front: { wMm: fW,        hMm: fH,        ppm: pF, score: sF },
+      side:  { wMm: sW,        hMm: sH,        ppm: pS, score: sS },
+      top:   { wMm: topTrueW,  hMm: topTrueD,  ppm: pT, score: sT },
     },
     issues,
   };
@@ -341,6 +355,17 @@ function buildObjectModel() {
   // Enrich ctx[v].dims so ctxSummary() shows live mm values
   for (const [v,wm,hm] of [['front',fW,fH],['side',sW,sH],['top',tW,tH]])
     if (wm || hm) ctxWrite(v, 'dims', { W_mm: wm, H_mm: hm });
+
+  // Sync S.dims from consensus model so Layout, Export, and all other steps
+  // read the weighted-merge values, not just front-view measurements.
+  if (!S.dims) S.dims = {};
+  if (mW.val != null) S.dims.W = mW.val.toFixed(1);
+  if (mH.val != null) S.dims.H = mH.val.toFixed(1);
+  if (mD.val != null) S.dims.D = mD.val.toFixed(1);
+
+  // Refresh 3D hull if it's currently visible
+  if (typeof updateHullDims === 'function') updateHullDims();
+  if (typeof renderVisualHull === 'function') renderVisualHull();
 
   return S.objectModel;
 }
@@ -389,7 +414,9 @@ function runIsoFullPipeline(callback) {
   const url = S.imgs?.iso;
   if (!url) { if (callback) callback(null); return; }
 
+  showProcessing('Analyzing isometric view…');
   const img = new Image();
+  img.onerror = () => { hideProcessing(); if (callback) callback(null); };
   img.onload = () => {
     const SZ = 900;
     const sc = Math.min(SZ / img.width, SZ / img.height, 1);
@@ -428,7 +455,7 @@ function runIsoFullPipeline(callback) {
       if (x < minX) minX=x; if (x > maxX) maxX=x;
       if (y < minY) minY=y; if (y > maxY) maxY=y;
     }
-    if (maxX <= minX || maxY <= minY) { if (callback) callback(null); return; }
+    if (maxX <= minX || maxY <= minY) { hideProcessing(); if (callback) callback(null); return; }
 
     // ── 4. Find splitY (widest horizontal span = isometric equator) ───────
     const midX = Math.round((minX + maxX) / 2);
@@ -449,8 +476,9 @@ function runIsoFullPipeline(callback) {
       return n > 10 ? { l, r, t, b, wPx: r-l, hPx: b-t, n } : null;
     }
     const topBB   = faceBBox(minY, splitY, minX, maxX);
-    const frontBB = faceBBox(splitY, maxY, minX, midX);
-    const sideBB  = faceBBox(splitY, maxY, midX, maxX);
+    // ISO orientation: left half = SIDE, right half = FRONT (confirmed by user)
+    const sideBB  = faceBBox(splitY, maxY, minX, midX);
+    const frontBB = faceBBox(splitY, maxY, midX, maxX);
 
     // ── 6. Boundary quality score for each face (Sobel at mask edge) ──────
     function faceScore(yMin, yMax, xMin, xMax) {
@@ -473,16 +501,15 @@ function runIsoFullPipeline(callback) {
     }
     const scores = {
       top:   faceScore(minY, splitY, minX, maxX),
-      front: faceScore(splitY, maxY, minX, midX),
-      side:  faceScore(splitY, maxY, midX, maxX),
+      side:  faceScore(splitY, maxY, minX, midX),
+      front: faceScore(splitY, maxY, midX, maxX),
     };
 
     // ── 7. Derive mm dimensions from ISO pixel measurements ───────────────
-    // In a fixed-orientation isometric view the vertical face height in px is
-    // proportional to the true H.  We use any known ortho px/mm as anchor.
-    // Once H_mm is known → ppmISO = frontBB.hPx / H_mm
-    // Then: W_mm ≈ frontBB.wPx / ppmISO  (slight foreshortening, ~0.87)
-    //        D_mm ≈ sideBB.wPx  / ppmISO
+    // ISO orientation: left = SIDE, right = FRONT.
+    // frontBB.hPx = object height in px (used as anchor once H_mm is known).
+    // frontBB.wPx ≈ object width W_mm (slight foreshortening ~0.87, ignored here).
+    // sideBB.wPx  ≈ object depth D_mm.
     const knownH = S.objectModel?.dims?.H;
     let ppmISO = null, isoDims = {};
     if (knownH && frontBB) {
@@ -491,8 +518,8 @@ function runIsoFullPipeline(callback) {
         H:  knownH,
         W:  frontBB.wPx / ppmISO,
         D:  sideBB  ? sideBB.wPx  / ppmISO : null,
-        Wt: topBB   ? topBB.wPx   / ppmISO : null, // W from top face
-        Dt: topBB   ? topBB.hPx   / ppmISO : null, // D from top face
+        Wt: topBB   ? topBB.wPx   / ppmISO : null,
+        Dt: topBB   ? topBB.hPx   / ppmISO : null,
       };
     }
 
@@ -506,16 +533,12 @@ function runIsoFullPipeline(callback) {
     };
 
     // ── 8. Extract per-face contours for orthographic fallback ────────────────
-    // When an orthographic view (front/side) has open arch openings at the image
-    // border, its contour algorithm fails.  The equivalent ISO face has the arches
-    // INSIDE the cropped region → morphFillHoles works → clean silhouette.
-    // Stored in S.isoContours keyed by 'front'|'side'|'top'.
     S.isoContours  = {};
     S.isoFaceMasks = {};
     const _faceRegions = {
       top:   [minY, splitY, minX, maxX],
-      front: [splitY, maxY, minX, midX],
-      side:  [splitY, maxY, midX, maxX],
+      side:  [splitY, maxY, minX, midX],
+      front: [splitY, maxY, midX, maxX],
     };
     for (const [faceName, [fy0, fy1, fx0, fx1]] of Object.entries(_faceRegions)) {
       const fW = fx1 - fx0, fH = fy1 - fy0;
@@ -542,6 +565,7 @@ function runIsoFullPipeline(callback) {
 
     // Merge into objectModel
     buildObjectModel();
+    hideProcessing();
     if (callback) callback(S.isoData);
   };
   img.src = url;
@@ -557,6 +581,7 @@ function analyzeIsoView(callback) {
   if (!url) { if (callback) callback(null); return; }
 
   const img = new Image();
+  img.onerror = () => { if (callback) callback(null); };
   img.onload = () => {
     const maxW = 900, maxH = 700;
     const sc = Math.min(maxW / img.width, maxH / img.height, 1);
@@ -811,8 +836,12 @@ function onActivate(n) {
   if (n === 2) {
     initSeg();
     if (typeof _updateContourSegBadges === 'function') _updateContourSegBadges();
+    // Depth started in _quickAnalysis (upload step). Re-trigger only for views
+    // whose depth map is missing — e.g. session restore or late image addition.
     if (typeof computeDepthMap === 'function') {
-      ['front','side','top'].forEach(v => { if (S.imgs[v]) computeDepthMap(v); });
+      ['front','side','top'].forEach(v => {
+        if (S.imgs[v] && !S.depthMaps?.[v]) computeDepthMap(v);
+      });
     }
   }
   if (n === 3) {
@@ -843,5 +872,23 @@ function onActivate(n) {
   if (n === 8) { setDimView('front'); }
   if (n === 9) initLayout();
   if (n === 10) copyToExport();
+}
+
+// ── Processing overlay ────────────────────────────────────────────────────────
+let _processingCount = 0;
+
+function showProcessing(msg = 'Processing…') {
+  _processingCount++;
+  const el = document.getElementById('processing-overlay');
+  const msgEl = document.getElementById('processing-msg');
+  if (msgEl) msgEl.textContent = msg;
+  if (el) el.style.display = 'flex';
+}
+
+function hideProcessing() {
+  _processingCount = Math.max(0, _processingCount - 1);
+  if (_processingCount > 0) return;
+  const el = document.getElementById('processing-overlay');
+  if (el) el.style.display = 'none';
 }
 

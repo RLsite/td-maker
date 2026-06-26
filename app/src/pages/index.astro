@@ -31,6 +31,13 @@ import '../styles/global.css';
     <button onclick="newProject()" class="hdr-btn" style="font-size:12px;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;white-space:nowrap;">+ New</button>
   </header>
 
+  <!-- ══════════════ PROCESSING OVERLAY ══════════════ -->
+  <div id="processing-overlay" style="display:none;position:fixed;inset:0;background:rgba(10,15,26,.72);z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:18px;backdrop-filter:blur(3px);">
+    <div style="width:44px;height:44px;border:3px solid rgba(45,212,191,.2);border-top-color:#2dd4bf;border-radius:50%;animation:spin .8s linear infinite;"></div>
+    <div id="processing-msg" style="font-size:14px;font-weight:600;color:#e2e8f0;letter-spacing:.02em;">Processing…</div>
+  </div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
   <!-- ══════════════ CAMERA MODAL ══════════════ -->
   <div id="camera-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
     <video id="camera-video" autoplay playsinline style="display:none;"></video>
@@ -238,7 +245,7 @@ import '../styles/global.css';
           ))}
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
           <div style="position:relative;">
             <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Source</div>
             <canvas id="seg-src" style="width:100%;border-radius:8px;cursor:crosshair;"></canvas>
@@ -249,12 +256,8 @@ import '../styles/global.css';
             <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Silhouette</div>
             <canvas id="seg-out" style="width:100%;border-radius:8px;"></canvas>
           </div>
-          <div>
-            <div id="seg-computed-label" style="font-size:12px;color:var(--muted);margin-bottom:6px;">Computed</div>
-            <canvas id="seg-computed" style="width:100%;border-radius:8px;background:rgba(13,148,136,.04);border:1px dashed rgba(13,148,136,.25);"></canvas>
-          </div>
         </div>
-        <!-- calibration background status bar -->
+        <!-- calibration background status bar — hidden, code preserved in td-cal-background.js -->
         <div id="cal-bg-bar" style="display:none;align-items:center;gap:8px;background:rgba(124,58,237,.12);border:1px solid #7C3AED;border-radius:8px;padding:7px 12px;margin-bottom:8px;font-size:12px;color:#A78BFA;">
           <span>📐</span>
           <span id="cal-bg-msg">Click the 4 grid corners in the image (UL → UR → DR → DL)</span>
@@ -269,12 +272,14 @@ import '../styles/global.css';
           <button onclick="segMorphClean()" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">⬜ Clean Noise</button>
           <button onclick="segFillHoles()" title="Fill enclosed holes in segmentation mask (skimage.morphology.remove_small_holes)" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">⬚ Fill Holes</button>
           <button onclick="gmmSegment()" title="GMM Color Segmentation — GrabCut simplified (Rother 2004)" style="padding:5px 12px;border-radius:8px;border:1px solid #7C3AED;background:rgba(124,58,237,.1);color:#A78BFA;font-size:12px;cursor:pointer;font-weight:600;">🧩 GMM</button>
-          <button onclick="startCalBgMode()" title="Calibration background subtraction — click 4 grid corners" style="padding:5px 12px;border-radius:8px;border:1px solid #F59E0B;background:rgba(245,158,11,.1);color:#FCD34D;font-size:12px;cursor:pointer;font-weight:600;">📐 Cal Background</button>
           <button id="seg-save-btn" onclick="saveSegSettings()" title="Save threshold and mode settings for all views" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">💾 Save Settings</button>
         </div>
+        <!-- Grayscale histogram — shows where the object/background peaks are -->
+        <canvas id="seg-histogram" height="36"
+          style="width:100%;border-radius:6px;margin-bottom:4px;background:rgba(0,0,0,.35);display:block;"></canvas>
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;">
           <label style="font-size:13px;color:var(--subtle);width:60px;">Threshold:</label>
-          <input id="seg-slider" type="range" min="30" max="240" value="120" oninput="applyThreshold()"
+          <input id="seg-slider" type="range" min="0" max="255" value="120" oninput="applyThreshold()"
             style="flex:1;" />
           <span id="seg-val" style="font-family:'Fira Code',monospace;font-size:13px;color:var(--teal-light);width:36px;">120</span>
         </div>
@@ -338,13 +343,12 @@ import '../styles/global.css';
           <div style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.28);border-radius:8px;">
             <span style="font-size:10px;font-weight:700;letter-spacing:.07em;color:#FCD34D;text-transform:uppercase;white-space:nowrap;">Manual</span>
             <button id="roi-btn" onclick="toggleRoiMode()" title="Draw a rectangle — Auto Detect applies only inside" style="padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">□ ROI</button>
-            <button id="silhouette-btn" onclick="toggleSilhouette()" title="Default: Computed silhouette. Toggle to show original photo." style="padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">📷 Photo</button>
             <button id="bgsample-btn" onclick="toggleBgSampleMode()" title="Click a background area to exclude its colour" style="padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">🔬 Background</button>
             <button id="add-hole-btn" onclick="addHole()" title="Add a hole contour inside the outer contour" style="padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;opacity:0.4;pointer-events:none;">🕳 Hole</button>
             <span id="active-contour-badge" style="display:none;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:rgba(13,148,136,.2);border:1px solid rgba(13,148,136,.5);color:#14B8A6;white-space:nowrap;"></span>
           </div>
           <span style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></span>
-          <button onclick="undoPoint()" title="Undo last point" style="padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">↩ Undo</button>
+          <button id="undo-btn" onclick="undoPoint()" title="Undo (Ctrl+Z)" style="padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;opacity:0.4;pointer-events:none;">↩ Undo</button>
           <button onclick="clearContour()" title="Clear contour" style="padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;">🗑 Clear</button>
           <span style="width:1px;height:20px;background:var(--border);flex-shrink:0;"></span>
           <button id="float-btn" onclick="toggleFloatCanvas()" title="Open floating image window" style="padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--subtle);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;">
@@ -461,23 +465,49 @@ import '../styles/global.css';
         <h2 style="font-size:22px;font-weight:700;margin:0 0 6px;">3D Reconstruction</h2>
         <p style="color:var(--muted);margin:0 0 16px;font-size:14px;">Visual Hull from contours. Drag to rotate, scroll to zoom.</p>
 
-        <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;">
+        <div style="position:relative;background:#F8FAFC;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;">
           <canvas id="hull-canvas" style="width:100%;display:block;cursor:grab;"></canvas>
+          <canvas id="nav-cube" width="82" height="82"
+            style="position:absolute;top:10px;right:10px;cursor:pointer;border-radius:6px;"
+            title="Click a face to snap to that view"></canvas>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
-          {[['W','Width'],['H','Height'],['D','Depth']].map(([k,label]) => (
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">
+          {[['W','Width','Front↔Top'],['H','Height','Front↔Side'],['D','Depth','Side↔Top']].map(([k,label,views]) => (
             <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
               <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">{label}</div>
               <div id={`hull-dim-${k}`} style="font-size:22px;font-weight:700;font-family:'Fira Code',monospace;color:var(--teal-light);">—</div>
               <div style="font-size:11px;color:var(--border);">mm</div>
+              <div id={`hull-cons-${k}`} style="font-size:10px;margin-top:4px;color:var(--muted);">{views}</div>
             </div>
           ))}
+        </div>
+
+        <div id="hull-issues" style="display:none;margin-bottom:10px;padding:8px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;font-size:11px;color:#F59E0B;"></div>
+
+        <!-- Knowledge panel: all gathered info from previous steps -->
+        <details style="margin-bottom:10px;">
+          <summary style="cursor:pointer;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:11px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.06em;list-style:none;display:flex;align-items:center;gap:6px;">
+            <span style="flex:1;">Knowledge Summary</span>
+            <span style="font-size:10px;color:var(--muted);font-weight:400;">Scale · Segmentation · Contour · Symmetry · Holes per view</span>
+          </summary>
+          <div id="hull-knowledge" style="background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:6px;overflow-x:auto;"></div>
+        </details>
+
+        <!-- Orthographic 3-view contour panel -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;">
+          <div style="padding:8px 12px 0;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;font-weight:700;color:var(--subtle);text-transform:uppercase;letter-spacing:.06em;">Orthographic Views</span>
+            <span id="hull-ortho-status" style="font-size:10px;color:var(--muted);"></span>
+          </div>
+          <canvas id="hull-ortho-canvas" style="width:100%;display:block;"></canvas>
+          <div id="hull-ortho-dims" style="padding:6px 12px 8px;border-top:1px solid var(--border);font-size:11px;display:none;"></div>
         </div>
 
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
           <button onclick="resetHullView()" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-size:12px;cursor:pointer;">⊙ Reset</button>
           <button onclick="toggleHullGrid()" id="hull-grid-btn" style="padding:6px 14px;border-radius:8px;border:1px solid var(--teal);background:rgba(13,148,136,.15);color:var(--teal-light);font-size:12px;cursor:pointer;">Grid ✓</button>
+<button onclick="exportSTL()" id="hull-export-stl-btn" style="padding:6px 14px;border-radius:8px;border:1px solid #6366f1;background:rgba(99,102,241,.12);color:#a5b4fc;font-size:12px;cursor:pointer;">Export STL</button>
           <span style="font-size:11px;color:var(--muted);margin-right:auto;">Elevation:</span>
           <input id="hull-el" type="range" min="-30" max="70" value="22" style="width:80px;accent-color:#0D9488;" oninput="hull.el=parseInt(this.value);renderVisualHull();" />
         </div>

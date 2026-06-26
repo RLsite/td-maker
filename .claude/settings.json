@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip show *)",
+      "PowerShell(Get-Process python -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Force)",
+      "PowerShell(Start-Process python -ArgumentList \"C:\\\\harel\\\\KioskApp\\\\app.py\" -WorkingDirectory \"C:\\\\harel\\\\KioskApp\" -WindowStyle Minimized)",
+      "Bash(cd /tmp)",
+      "Bash(npx --yes @electron/asar list \"C:\\\\Program Files\\\\FlowVision\\\\resources\\\\app.asar\")",
+      "Bash(npx @electron/asar list \"C:\\\\Program Files\\\\FlowVision\\\\resources\\\\app.asar\")",
+      "Bash(grep -v \"^\\\\\\\\\\\\\\\\node_modules\")",
+      "Bash(npx @electron/asar extract-file \"C:\\\\Program Files\\\\FlowVision\\\\resources\\\\app.asar\" \"src/main/main.js\" ./flowvision_main.js)",
+      "Bash(npx @electron/asar extract \"C:\\\\Program Files\\\\FlowVision\\\\resources\\\\app.asar\" ./flowvision_extracted)",
+      "Read(//tmp/flowvision_extracted/src/main/**)",
+      "Read(//tmp/flowvision_extracted/**)",
+      "Bash(cat \"C:/tmp/flowvision_extracted/src/main/main.js\" 2>/dev/null || cat \"/tmp/flowvision_extracted/src/main/main.js\" 2>/dev/null | head -100)",
+      "Read(//c/tmp/flowvision_extracted/src/main/**)",
+      "Bash(timeout 8 npx electron .)",
+      "Bash(rm -rf node_modules/electron)",
+      "Bash(npm install *)",
+      "Bash(node_modules/.bin/electron --version)",
+      "Read(//c/Users/User/AppData/Local/electron/Cache/**)",
+      "PowerShell($f = Get-ChildItem \"C:\\\\Users\\\\User\\\\AppData\\\\Local\\\\electron\\\\Cache\\\\073c10f139c87e3badb3ab4fec283ab33ea3ccf18b5cb8ce88ffcc6cb893b618\"; Write-Host \"Size: $\\($f.Length\\) bytes\")",
+      "PowerShell(cd \"c:\\\\harel\\\\TD\"; $env:ELECTRON_SKIP_BINARY_DOWNLOAD=\"\"; node -e \"require\\('./node_modules/electron/install.js'\\)\" 2>&1 | Select-Object -Last 10)",
+      "PowerShell(& \"C:\\\\harel\\\\TD\\\\node_modules\\\\electron\\\\dist\\\\electron.exe\" --version 2>&1)"
+    ],
+    "additionalDirectories": [
+      "C:\\Temp"
+    ]
+  }
+}

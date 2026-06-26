@@ -7,6 +7,7 @@ function initReview() {
     const url = S.imgs[v];
     if (!url) return;
     const img = new Image();
+    img.onerror = () => { ctx.clearRect(0, 0, c.width, c.height); };
     img.onload = () => {
       const parent = c.parentElement;
       const r = Math.min(parent.clientWidth / img.width, parent.clientHeight / img.height, 1);
@@ -42,15 +43,22 @@ function calcDimensions() {
       minY: Math.min(...p.pts.map(pt => pt.y)), maxY: Math.max(...p.pts.map(pt => pt.y)),
     };
   };
-  const fmt = (px, view) => {
+  const fmt = (px, view, axis) => {
     const ppm = S.scale[view] ?? measurements[view]?.reduce((a,m)=>a+m.ppm,0) / (measurements[view]?.length||1);
     if (!ppm || !px) return '—';
-    return (px / ppm).toFixed(1);
+    // poly.pts are in canvas pixels; ppm is in original-image px/mm.
+    // Convert: canvas_px / ppmCanvas, where ppmCanvas = ppm * canvasW / origW
+    const srcW = S.polyCanvasSize?.[view]?.w ?? 1;
+    const srcH = S.polyCanvasSize?.[view]?.h ?? 1;
+    const origW = S.segMeta?.[view]?.origW ?? srcW;
+    const origH = S.segMeta?.[view]?.origH ?? srcH;
+    const ppmCanvas = axis === 'y' ? ppm * srcH / origH : ppm * srcW / origW;
+    return (px / ppmCanvas).toFixed(1);
   };
   const fb = bbox('front'), sb = bbox('side'), tb = bbox('top');
-  const W = fb ? fmt(fb.maxX - fb.minX, 'front') : '—';
-  const H = fb ? fmt(fb.maxY - fb.minY, 'front') : '—';
-  const D = sb ? fmt(sb.maxX - sb.minX, 'side') : '—';
+  const W = fb ? fmt(fb.maxX - fb.minX, 'front', 'x') : '—';
+  const H = fb ? fmt(fb.maxY - fb.minY, 'front', 'y') : '—';
+  const D = sb ? fmt(sb.maxX - sb.minX, 'side', 'x') : '—';
   ['W','H','D'].forEach((k,i) => {
     const el = document.getElementById(`dim-${k}`);
     const val = [W,H,D][i];
@@ -96,6 +104,7 @@ function autoDetectHoles() {
   if (!url || !S.polys[S.contourView].pts.length) return alert('Detect the contour first');
   const tmpC=document.createElement('canvas'), tmpCtx=tmpC.getContext('2d');
   const img=new Image();
+  img.onerror=()=>{ alert('Could not load image for hole detection'); };
   img.onload=()=>{
     const maxW=900, maxH=700;
     const r=Math.min(maxW/img.width,maxH/img.height,1);
@@ -146,7 +155,14 @@ function scaleXValidation() {
   const bboxMM = (v) => {
     const p = S.polys[v]; const ppm = S.scale[v];
     if (!p.pts.length || !ppm) return null;
-    const xs = p.pts.map(pt=>pt.x/ppm), ys = p.pts.map(pt=>pt.y/ppm);
+    // Convert canvas px to mm using canvas-space ppm
+    const srcW = S.polyCanvasSize?.[v]?.w ?? 1;
+    const srcH = S.polyCanvasSize?.[v]?.h ?? 1;
+    const origW = S.segMeta?.[v]?.origW ?? srcW;
+    const origH = S.segMeta?.[v]?.origH ?? srcH;
+    const ppmX = ppm * srcW / origW;
+    const ppmY = ppm * srcH / origH;
+    const xs = p.pts.map(pt=>pt.x/ppmX), ys = p.pts.map(pt=>pt.y/ppmY);
     return { w: Math.max(...xs)-Math.min(...xs), h: Math.max(...ys)-Math.min(...ys) };
   };
   const f = bboxMM('front'), s = bboxMM('side'), t = bboxMM('top');
@@ -192,14 +208,21 @@ function _polyAreaMM(view) {
   const p = S.polys[view];
   const ppm = S.scale[view];
   if (!p || p.pts.length < 3 || !ppm) return null;
-  // Shoelace formula in pixel space, then convert area
+  // Convert canvas px to mm using canvas-space ppm
+  const srcW = S.polyCanvasSize?.[view]?.w ?? 1;
+  const srcH = S.polyCanvasSize?.[view]?.h ?? 1;
+  const origW = S.segMeta?.[view]?.origW ?? srcW;
+  const origH = S.segMeta?.[view]?.origH ?? srcH;
+  const ppmX = ppm * srcW / origW;
+  const ppmY = ppm * srcH / origH;
+  // Shoelace formula directly in mm space
   let area = 0;
   const n = p.pts.length;
   for (let i = 0; i < n; i++) {
     const a = p.pts[i], b = p.pts[(i + 1) % n];
-    area += a.x * b.y - b.x * a.y;
+    area += (a.x / ppmX) * (b.y / ppmY) - (b.x / ppmX) * (a.y / ppmY);
   }
-  return Math.abs(area) / 2 / (ppm * ppm); // px² → mm²
+  return Math.abs(area) / 2; // mm²
 }
 
 function _detectedDimsMM() {
@@ -207,7 +230,14 @@ function _detectedDimsMM() {
     const p = S.polys[v];
     const ppm = S.scale[v];
     if (!p.pts.length || !ppm) return null;
-    const xs = p.pts.map(pt => pt.x / ppm), ys = p.pts.map(pt => pt.y / ppm);
+    // Convert canvas px to mm using canvas-space ppm
+    const srcW = S.polyCanvasSize?.[v]?.w ?? 1;
+    const srcH = S.polyCanvasSize?.[v]?.h ?? 1;
+    const origW = S.segMeta?.[v]?.origW ?? srcW;
+    const origH = S.segMeta?.[v]?.origH ?? srcH;
+    const ppmX = ppm * srcW / origW;
+    const ppmY = ppm * srcH / origH;
+    const xs = p.pts.map(pt => pt.x / ppmX), ys = p.pts.map(pt => pt.y / ppmY);
     return { w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
   };
   const f = bboxMM('front'), s = bboxMM('side');

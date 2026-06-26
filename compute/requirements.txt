@@ -1,0 +1,30 @@
+# TD Maker — Python compute sidecar dependencies
+# Install: pip install -r requirements.txt
+#
+# For GPU acceleration (optional, CUDA 12.x):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# For CPU-only:
+#   pip install torch torchvision
+
+# Core
+torch>=2.2.0
+torchvision>=0.17.0
+pillow>=10.0.0
+numpy>=1.24.0
+
+# Segment Anything Model (Meta)
+# git+https://github.com/facebookresearch/segment-anything.git
+segment-anything
+
+# Depth Estimation (Depth-Anything v2 via HuggingFace)
+transformers>=4.40.0
+huggingface-hub>=0.22.0
+
+# OpenCV (for GrabCut, morphology, etc.)
+opencv-python>=4.9.0
+
+# Mesh generation (marching cubes for 3D reconstruction → STL)
+scikit-image>=0.21.0
+
+# Build tool (for creating td_compute.exe)
+pyinstaller>=6.0.0

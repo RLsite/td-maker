@@ -30,8 +30,80 @@ function computeEdgeEnergy() {
   // Normalize
   if (maxM>0) for (let i=0;i<W*H;i++) mag[i]/=maxM;
 
+  // Blend depth gradient: take max of color edge and depth edge.
+  // Depth discontinuities are often cleaner at object boundaries than color edges.
+  const dGrad = typeof depthGradient === 'function'
+    ? depthGradient(S.contourView, W, H)
+    : null;
+  if (dGrad) {
+    let dMax = 0;
+    for (let i = 0; i < dGrad.length; i++) if (dGrad[i] > dMax) dMax = dGrad[i];
+    if (dMax > 0)
+      for (let i = 0; i < W*H; i++) mag[i] = Math.max(mag[i], dGrad[i] / dMax);
+  }
+
   // Gaussian blur the energy field → "pull" basin around edges
   return _zdceBoxBlur(mag, W, H, Math.max(3, Math.round(Math.min(W,H)*0.015)));
+}
+
+// Silent snake run triggered automatically after auto-detect.
+// capturedView: the view that triggered this run — abort if user switched away.
+function _runSnakeAuto(capturedView) {
+  const view = capturedView ?? S.contourView;
+  if (view !== S.contourView) return;  // user switched views during setTimeout
+
+  // cImg loads asynchronously; retry once it's ready.
+  if (!cC || !cImg || !cImg.complete || cImg.naturalWidth === 0) {
+    if (cImg && !cImg.complete) {
+      cImg.addEventListener('load', () => _runSnakeAuto(view), { once: true });
+    }
+    return;
+  }
+  const poly = S.polys[view];
+  if (!poly?.closed || poly.pts.length < 4) return;
+
+  const W = cC.width, H = cC.height;
+  const energy = computeEdgeEnergy();
+  if (!energy) return;
+
+  const alpha = 0.3;
+  const beta  = 0.1;
+  const gamma = 4.0;
+  const STEP  = 3;
+  const ITERS = 50;
+
+  const pts = poly.pts.map(p => ({ x: p.x, y: p.y }));
+  const n = pts.length;
+
+  // Gauss-Seidel: read prev/next from pts directly so each update benefits
+  // from neighbors that already moved in this iteration (faster convergence).
+  for (let iter = 0; iter < ITERS; iter++) {
+    for (let i = 0; i < n; i++) {
+      const pv = pts[(i - 1 + n) % n];
+      const nx2 = pts[(i + 1) % n];
+      let bestE = Infinity, bestX = pts[i].x, bestY = pts[i].y;
+      for (let dy = -STEP; dy <= STEP; dy++) for (let dx = -STEP; dx <= STEP; dx++) {
+        const cx = pts[i].x + dx, cy = pts[i].y + dy;
+        if (cx < 1 || cx >= W - 1 || cy < 1 || cy >= H - 1) continue;
+        const ix = Math.round(cx), iy = Math.round(cy);
+        const d1 = (cx - pv.x) ** 2 + (cy - pv.y) ** 2;
+        const d2 = (pv.x - 2*cx + nx2.x) ** 2 + (pv.y - 2*cy + nx2.y) ** 2;
+        const E  = alpha * d1 + beta * d2 - gamma * energy[iy * W + ix];
+        if (E < bestE) { bestE = E; bestX = cx; bestY = cy; }
+      }
+      pts[i] = { x: bestX, y: bestY };
+    }
+  }
+  poly.pts = pts;
+
+  // Fix any outer-contour vertices inside a hole — runs after snake so it
+  // is not immediately overwritten by the snake's final poly.pts assignment.
+  if (typeof _fixContourHolePenetration === 'function')
+    _fixContourHolePenetration(view);
+
+  drawContour();
+  updateContourInfo();
+  persistState();
 }
 
 function runSnake() {
@@ -53,23 +125,18 @@ function runSnake() {
   const n = pts.length;
 
   for (let iter=0; iter<ITERS; iter++) {
-    const prev = pts.map((_,i)=>pts[(i-1+n)%n]);
-    const next = pts.map((_,i)=>pts[(i+1)%n]);
     for (let i=0; i<n; i++) {
+      const pv = pts[(i-1+n)%n];
+      const nxt = pts[(i+1)%n];
       let bestE=Infinity, bestX=pts[i].x, bestY=pts[i].y;
       for (let dy=-STEP; dy<=STEP; dy++) for (let dx=-STEP; dx<=STEP; dx++) {
-        const nx=pts[i].x+dx, ny=pts[i].y+dy;
-        if (nx<1||nx>=W-1||ny<1||ny>=H-1) continue;
-        const ix=Math.round(nx), iy=Math.round(ny);
-        // Internal: elasticity
-        const d1=(nx-prev[i].x)**2+(ny-prev[i].y)**2;
-        // Internal: rigidity (second derivative)
-        const d2=(prev[i].x-2*nx+next[i].x)**2+(prev[i].y-2*ny+next[i].y)**2;
-        const Eint = alpha*d1 + beta*d2;
-        // External: negative edge energy
-        const Eext = -gamma * energy[iy*W+ix];
-        const E = Eint+Eext;
-        if (E<bestE) { bestE=E; bestX=nx; bestY=ny; }
+        const cx=pts[i].x+dx, cy=pts[i].y+dy;
+        if (cx<1||cx>=W-1||cy<1||cy>=H-1) continue;
+        const ix=Math.round(cx), iy=Math.round(cy);
+        const d1=(cx-pv.x)**2+(cy-pv.y)**2;
+        const d2=(pv.x-2*cx+nxt.x)**2+(pv.y-2*cy+nxt.y)**2;
+        const E = alpha*d1 + beta*d2 - gamma*energy[iy*W+ix];
+        if (E<bestE) { bestE=E; bestX=cx; bestY=cy; }
       }
       pts[i]={x:bestX, y:bestY};
     }

@@ -1,0 +1,49 @@
+{
+  "name": "td-maker",
+  "version": "1.0.0",
+  "description": "TD Maker — Technical Drawing from Photos",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "set ELECTRON_DEV=1 && electron .",
+    "build:ui": "cd app && npm run build",
+    "build:exe": "electron-builder --win",
+    "build": "npm run build:ui && npm run build:exe"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.tdmaker.app",
+    "productName": "TD Maker",
+    "copyright": "Copyright © 2026",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "app/dist",
+        "to": "dist",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "compute/td_compute.exe",
+        "to": "td_compute.exe"
+      }
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "TD Maker"
+    }
+  }
+}

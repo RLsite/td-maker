@@ -274,6 +274,7 @@ function setContourView(v) {
   S.contourView = v; S.mouse = null;
   cActiveContour = 'outer';
   document.querySelectorAll('.contour-tab').forEach(t => t.classList.toggle('active', t.dataset.v === v));
+  _updateUndoBtn();
   resetZoom();
   // Ensure this view has a segmentation mask before the canvas builds
   _ensureSegMask(v, () => {
@@ -288,6 +289,7 @@ function setContourView(v) {
 // Interaction state — module-level so initContour can be called multiple times safely
 let cPanStart = null, cPanMoved = false;
 let cDragPt = null;
+let cDragFrag = null;  // { fragIdx, lastX, lastY } when dragging a whole fragment
 let cHoverPt = -1, cHoverEdge = -1;
 let cHoverHolePt   = { hi: -1, pi: -1 };
 let cHoverHoleEdge = { hi: -1, ei: -1 };
@@ -360,6 +362,37 @@ function _nearestHoleEdge(ix, iy, onlyHi=-1) {
   });
   return bestD < PT_HIT*1.5 ? {hi:bestHi,ei:bestEi} : {hi:-1,ei:-1};
 }
+function _nearestFragPt(ix, iy) {
+  const frags = S.polyFragments?.[S.contourView];
+  if (!frags?.length) return { fi: -1 };
+  let bestFi = -1, bestD = Infinity;
+  frags.forEach((frag, fi) => {
+    frag.pts.forEach(p => {
+      const d = Math.hypot((p.x - ix) * cZoom.s, (p.y - iy) * cZoom.s);
+      if (d < bestD) { bestD = d; bestFi = fi; }
+    });
+  });
+  return bestD < PT_HIT * 2 ? { fi: bestFi } : { fi: -1 };
+}
+function _mergeFragmentIntoMain(view, fragIdx) {
+  const frags = S.polyFragments?.[view];
+  const frag = frags?.[fragIdx];
+  const main = S.polys?.[view];
+  if (!frag || !main?.closed || !main.pts.length) return;
+  // Find closest pair between main poly and fragment
+  let bestDist = Infinity, bestMi = 0, bestFi = 0;
+  main.pts.forEach((mp, mi) => {
+    frag.pts.forEach((fp, fi) => {
+      const d = Math.hypot(mp.x - fp.x, mp.y - fp.y);
+      if (d < bestDist) { bestDist = d; bestMi = mi; bestFi = fi; }
+    });
+  });
+  // Insert fragment into main poly starting from the nearest fragment point
+  const reordered = [...frag.pts.slice(bestFi), ...frag.pts.slice(0, bestFi)];
+  main.pts.splice(bestMi + 1, 0, ...reordered);
+  frags.splice(fragIdx, 1);
+  if (!frags.length) delete S.polyFragments[view];
+}
 
 function _updateContourSelector() {
   const overlay = document.getElementById('contour-select-overlay');
@@ -401,6 +434,14 @@ function _attachContourEvents() {
   if (_cEventsAttached) return;
   _cEventsAttached = true;
 
+  document.addEventListener('keydown', (e) => {
+    if (S.step !== 3) return;
+    if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+      e.preventDefault();
+      _popUndo();
+    }
+  });
+
   cC.addEventListener('mousedown', (e) => {
     hideCtxMenu();
     if (e.button !== 0) return;
@@ -429,20 +470,29 @@ function _attachContourEvents() {
     if (cActiveContour !== 'outer') {
       const onlyHi = typeof cActiveContour === 'number' ? cActiveContour : -1;
       const {hi:hpi, pi:hpiPi} = _nearestHolePt(ix, iy, onlyHi);
-      if (hpi >= 0) { cDragHolePt={hi:hpi,pi:hpiPi}; cC.style.cursor='move'; return; }
+      if (hpi >= 0) { _pushUndo(); cDragHolePt={hi:hpi,pi:hpiPi}; cC.style.cursor='move'; return; }
       const {hi:hei, ei:heiEi} = _nearestHoleEdge(ix, iy, onlyHi);
       if (hei >= 0) {
+        _pushUndo();
         const hole=S.holes[S.contourView][hei];
         const a=hole[heiEi],b=hole[(heiEi+1)%hole.length];
         hole.splice(heiEi+1,0,{x:(a.x+b.x)/2,y:(a.y+b.y)/2});
         cDragHolePt={hi:hei,pi:heiEi+1}; cC.style.cursor='move'; drawContour(); return;
       }
     }
+    // Fragment drag — grab entire fragment, auto-merge when close to main poly
+    const { fi: _ffi } = _nearestFragPt(ix, iy);
+    if (_ffi >= 0) {
+      _pushUndo();
+      cDragFrag = { fragIdx: _ffi, lastX: ix, lastY: iy };
+      cC.style.cursor = 'move'; return;
+    }
     if (cActiveContour === 'outer' && poly.closed) {
       const pi = _nearestPt(ix, iy);
-      if (pi >= 0) { cDragPt={idx:pi}; cC.style.cursor='move'; return; }
+      if (pi >= 0) { _pushUndo(); cDragPt={idx:pi}; cC.style.cursor='move'; return; }
       const ei = _nearestEdge(ix, iy);
       if (ei >= 0) {
+        _pushUndo();
         const a=poly.pts[ei],b=poly.pts[(ei+1)%poly.pts.length];
         poly.pts.splice(ei+1,0,{x:(a.x+b.x)/2,y:(a.y+b.y)/2});
         cDragPt={idx:ei+1}; cC.style.cursor='move'; drawContour(); return;
@@ -479,6 +529,30 @@ function _attachContourEvents() {
       const { sx, sy } = _cCoords(e);
       const { x, y } = screenToImg(sx, sy);
       S.polys[S.contourView].pts[cDragPt.idx]={x,y};
+      drawContour(); return;
+    }
+    if (cDragFrag) {
+      const { sx, sy } = _cCoords(e);
+      const { x: ix2, y: iy2 } = screenToImg(sx, sy);
+      const dx = ix2 - cDragFrag.lastX, dy = iy2 - cDragFrag.lastY;
+      cDragFrag.lastX = ix2; cDragFrag.lastY = iy2;
+      const frag = S.polyFragments?.[S.contourView]?.[cDragFrag.fragIdx];
+      if (!frag) { cDragFrag = null; return; }
+      frag.pts = frag.pts.map(p => ({ x: p.x + dx, y: p.y + dy }));
+      // Auto-merge when any fragment point is within 20px (screen) of any main poly point
+      const main = S.polys[S.contourView];
+      if (main?.closed) {
+        const mergeDist = 20 / cZoom.s;
+        let doMerge = false;
+        outer: for (const fp of frag.pts)
+          for (const mp of main.pts)
+            if (Math.hypot(fp.x - mp.x, fp.y - mp.y) < mergeDist) { doMerge = true; break outer; }
+        if (doMerge) {
+          _mergeFragmentIntoMain(S.contourView, cDragFrag.fragIdx);
+          cDragFrag = null;
+          updateContourInfo(); drawContour(); persistState(); return;
+        }
+      }
       drawContour(); return;
     }
     if (cPanStart) {
@@ -520,6 +594,7 @@ function _attachContourEvents() {
       } else { cRoiRect=null; drawContour(); }
       return;
     }
+    if (cDragFrag) { cDragFrag=null; persistState(); cC.style.cursor='grab'; return; }
     if (cDragHolePt) { cDragHolePt=null; persistState(); cC.style.cursor='grab'; return; }
     if (cDragPt) { cDragPt=null; updateContourInfo(); persistState(); cC.style.cursor='grab'; return; }
     if (e.button!==0) return;
@@ -534,10 +609,12 @@ function _attachContourEvents() {
     if (poly.pts.length>=3) {
       const f=poly.pts[0];
       if (Math.sqrt((x-f.x)**2+(y-f.y)**2)<14/cZoom.s) {
+        _pushUndo();
         poly.closed=true; cHoverPt=-1; cHoverEdge=-1;
         drawContour(); updateContourInfo(); persistState(); return;
       }
     }
+    _pushUndo();
     poly.pts.push({x,y}); drawContour(); updateContourInfo();
   });
 
@@ -617,11 +694,10 @@ function initContour() {
     const tmpC=document.createElement('canvas'); tmpC.width=w; tmpC.height=h;
     const tmpCtx=tmpC.getContext('2d');
 
-    // Prefer Computed (sealed+filled) mask; fall back to raw segmentation mask
-    const segMaskData = S.segMaskImproved?.[myView] ?? S.segMasks?.[myView];
-
-    if (segMaskData && !S.showSilhouette) {
-      // Default: show clean Computed silhouette as background (white=object, dark=bg)
+    // Background: silhouette mask from Background Separation (white=object, dark=bg).
+    // Falls back to original photo if no mask exists yet.
+    const segMaskData = S.segMasks?.[myView] ?? S.segMaskImproved?.[myView];
+    if (segMaskData) {
       const {mask,W:mW,H:mH} = segMaskData;
       const mC=document.createElement('canvas'); mC.width=mW; mC.height=mH;
       const mCtx=mC.getContext('2d');
@@ -637,20 +713,7 @@ function initContour() {
       tmpCtx.fillStyle='#14181E'; tmpCtx.fillRect(0,0,w,h);
       tmpCtx.drawImage(mC,0,0,w,h);
     } else {
-      // Silhouette toggle ON (or no mask): show original photo + teal overlay if mask exists
       tmpCtx.drawImage(origImg,0,0,w,h);
-      if (segMaskData) {
-        const {mask,W:mW,H:mH}=segMaskData;
-        const mC=document.createElement('canvas'); mC.width=mW; mC.height=mH;
-        const mCtx=mC.getContext('2d');
-        const mImg=mCtx.createImageData(mW,mH);
-        for (let i=0;i<mW*mH;i++) {
-          const isObj=mask[i]>128;
-          mImg.data[i*4]=isObj?13:0; mImg.data[i*4+1]=isObj?148:0;
-          mImg.data[i*4+2]=isObj?136:0; mImg.data[i*4+3]=isObj?70:0;
-        }
-        mCtx.putImageData(mImg,0,0); tmpCtx.drawImage(mC,0,0,w,h);
-      }
     }
 
     cImg = new Image();
@@ -668,7 +731,7 @@ function initContour() {
     cImg.src = tmpC.toDataURL();
   };
 
-  const orig=new Image(); orig.onload=()=>buildContourImg(orig); orig.src=url;
+  const orig=new Image(); orig.onerror=()=>{ if(myView===S.contourView) cCtx.clearRect(0,0,cC.width,cC.height); }; orig.onload=()=>buildContourImg(orig); orig.src=url;
 }
 
 // Zooms the contour canvas so the object region fills it with a small margin.
@@ -776,6 +839,87 @@ function drawContour() {
       cCtx.strokeStyle = 'white'; cCtx.lineWidth = lw*.8; cCtx.stroke();
     });
   }
+  // Secondary fragment overlays (drag to merge into main contour)
+  const _frags = S.polyFragments?.[S.contourView];
+  if (_frags?.length) {
+    const flw = 2 / cZoom.s;
+    _frags.forEach((frag, fi) => {
+      if (frag.pts.length < 2) return;
+      cCtx.beginPath();
+      cCtx.moveTo(frag.pts[0].x, frag.pts[0].y);
+      frag.pts.slice(1).forEach(p => cCtx.lineTo(p.x, p.y));
+      cCtx.closePath();
+      cCtx.fillStyle = 'rgba(249,115,22,.10)';
+      cCtx.fill();
+      cCtx.setLineDash([5/cZoom.s, 3/cZoom.s]);
+      cCtx.strokeStyle = '#F97316';
+      cCtx.lineWidth = flw;
+      cCtx.stroke();
+      cCtx.setLineDash([]);
+      frag.pts.forEach(p => {
+        cCtx.beginPath();
+        cCtx.arc(p.x, p.y, 4/cZoom.s, 0, Math.PI*2);
+        cCtx.fillStyle = '#F97316'; cCtx.fill();
+        cCtx.strokeStyle = 'white'; cCtx.lineWidth = flw * 0.6; cCtx.stroke();
+      });
+      const cx = frag.pts.reduce((s,p)=>s+p.x,0)/frag.pts.length;
+      const cy = frag.pts.reduce((s,p)=>s+p.y,0)/frag.pts.length;
+      cCtx.font = `bold ${Math.round(11/cZoom.s)}px sans-serif`;
+      cCtx.fillStyle = '#F97316'; cCtx.textAlign = 'center';
+      cCtx.fillText(`frag ${fi+1} — drag to merge`, cx, cy - 8/cZoom.s);
+      cCtx.textAlign = 'left';
+    });
+  }
+
+  // Symmetry lines — from S._sym3D (object-level, not per-photo).
+  // Normalised [0..1] positions are relative to the contour bounding box.
+  // Convert back to canvas pixels using the contour's bounding box.
+  const sym3D = S._sym3D;
+  if (sym3D) {
+    const view = S.contourView;
+    const poly = S.polys[view];
+    const ppm  = S.scale?.[view];
+    if (poly?.pts?.length >= 3 && ppm) {
+      const srcW2 = S.polyCanvasSize?.[view]?.w ?? cC.width;
+      const srcH2 = S.polyCanvasSize?.[view]?.h ?? cC.height;
+      const origW2 = S.segMeta?.[view]?.origW ?? srcW2;
+      const origH2 = S.segMeta?.[view]?.origH ?? srcH2;
+      const ppmX2 = ppm * srcW2 / origW2, ppmY2 = ppm * srcH2 / origH2;
+      const xs2 = poly.pts.map(p => p.x / ppmX2);
+      const ys2 = poly.pts.map(p => p.y / ppmY2);
+      const minX2 = xs2.reduce((a,b)=>Math.min(a,b));
+      const maxX2 = xs2.reduce((a,b)=>Math.max(a,b));
+      const minY2 = ys2.reduce((a,b)=>Math.min(a,b));
+      const maxY2 = ys2.reduce((a,b)=>Math.max(a,b));
+      const cW2 = maxX2 - minX2 || 1, cH2 = maxY2 - minY2 || 1;
+      // norm → canvas px: normV * cW2 + minX2 (in mm) → * ppmX2 (canvas px)
+      const toCanvasX = norm => (minX2 + norm * cW2) * ppmX2;
+      const toCanvasY = norm => (minY2 + norm * cH2) * ppmY2;
+
+      const isTopRot2 = (view === 'top' && !!S.topRotated90);
+      const vertNorm2  = view === 'front' ? sym3D.W
+                       : view === 'side'  ? sym3D.D
+                       : isTopRot2        ? sym3D.D : sym3D.W;
+      const horizNorm2 = view === 'front' ? sym3D.H
+                       : view === 'side'  ? sym3D.H
+                       : isTopRot2        ? sym3D.W : sym3D.D;
+
+      const lw = 1.5 / cZoom.s;
+      cCtx.save();
+      cCtx.strokeStyle = '#FACC15'; cCtx.lineWidth = lw;
+      cCtx.setLineDash([6 / cZoom.s, 3 / cZoom.s]); cCtx.globalAlpha = 0.85;
+      if (vertNorm2 != null) {
+        const ax = toCanvasX(vertNorm2);
+        cCtx.beginPath(); cCtx.moveTo(ax, 0); cCtx.lineTo(ax, cC.height); cCtx.stroke();
+      }
+      if (horizNorm2 != null) {
+        const ay = toCanvasY(horizNorm2);
+        cCtx.beginPath(); cCtx.moveTo(0, ay); cCtx.lineTo(cC.width, ay); cCtx.stroke();
+      }
+      cCtx.restore();
+    }
+  }
+
   // ROI rectangle overlay
   if (cRoiRect) {
     const { x1, y1, x2, y2 } = cRoiRect;
@@ -835,10 +979,12 @@ function ctxDeletePt() {
   const poly = S.polys[S.contourView];
   const i = cCtxTarget.pi;
   if (i < 0 || poly.pts.length <= 3) return;
+  _pushUndo();
   poly.pts.splice(i, 1);
   cHoverPt = -1; drawContour(); updateContourInfo(); persistState();
 }
 function ctxInsertEdgePt() {
+  _pushUndo();
   const poly = S.polys[S.contourView];
   if (cCtxTarget.ei >= 0) {
     const ei = cCtxTarget.ei;
@@ -874,19 +1020,22 @@ function showHoleCtxMenu(cx, cy, hpi, hpiPi, hei, heiEi) {
   if (!holes) return;
   if (hpi >= 0 && holes[hpi].length > 3) {
     m.appendChild(btn('🗑 Delete Point', () => {
+      _pushUndo();
       holes[hpi].splice(hpiPi, 1);
       cHoverHolePt={hi:-1,pi:-1}; drawContour(); persistState();
     }, true));
   }
   if (hei >= 0) {
     m.appendChild(btn('➕ Add Point Here', () => {
+      _pushUndo();
       const hole=holes[hei], a=hole[heiEi], b=hole[(heiEi+1)%hole.length];
       hole.splice(heiEi+1,0,{x:(a.x+b.x)/2,y:(a.y+b.y)/2});
       drawContour(); persistState();
     }));
   }
-  const delHi = hpi >= 0 ? hpi : hei;
-  m.appendChild(btn('🗑 Delete Hole', () => {
+  const delHi = hpi >= 0 ? hpi : hei >= 0 ? hei : -1;
+  if (delHi >= 0) m.appendChild(btn('🗑 Delete Hole', () => {
+    _pushUndo();
     S.holes[S.contourView].splice(delHi, 1);
     cHoverHolePt={hi:-1,pi:-1}; cHoverHoleEdge={hi:-1,ei:-1};
     if (typeof cActiveContour === 'number' && cActiveContour >= (S.holes[S.contourView]?.length ?? 0)) cActiveContour = 'outer';
@@ -900,6 +1049,7 @@ function showHoleCtxMenu(cx, cy, hpi, hpiPi, hei, heiEi) {
 // ── Add a hole contour at the given canvas position (or centroid of outer poly) ──
 function addHole(x, y) {
   if (!S.polys?.[S.contourView]?.closed) return;
+  _pushUndo();
   if (!S.holes) S.holes = {};
   if (!S.holes[S.contourView]) S.holes[S.contourView] = [];
 
@@ -935,6 +1085,7 @@ function _updateAddHoleBtn() {
 function smoothContour() {
   const poly = S.polys[S.contourView];
   if (poly.pts.length < 4) return;
+  _pushUndo();
   const n = poly.pts.length;
   const sigma = 1.5, passes = 2;
   // Precompute Gaussian weights [-2..2]
@@ -961,17 +1112,6 @@ function smoothContour() {
 // User clicks a background region; local (mean, std) is recorded.
 // Re-running contour detection excludes pixels with matching texture profiles.
 
-function toggleSilhouette() {
-  S.showSilhouette = !S.showSilhouette;
-  const btn = document.getElementById('silhouette-btn');
-  if (btn) {
-    const on = S.showSilhouette;
-    btn.style.background  = on ? 'rgba(13,148,136,.2)' : 'transparent';
-    btn.style.borderColor = on ? 'var(--teal)' : 'var(--border)';
-    btn.style.color       = on ? 'var(--teal-light)' : 'var(--subtle)';
-  }
-  initContour();
-}
 
 function toggleBgSampleMode() {
   if (cRoiMode) toggleRoiMode();
@@ -1004,6 +1144,11 @@ function _addBgSampleAt(ix, iy) {
   const url  = S.imgs[view];
   if (!url) return;
   const img = new Image();
+  img.onerror = () => {
+    cBgSampleMode = false;
+    _refreshBgSampleBtn();
+    if (cC) cC.style.cursor = S.polys[view]?.closed ? 'grab' : 'crosshair';
+  };
   img.onload = () => {
     const maxW=900, maxH=700;
     const r=Math.min(maxW/img.width, maxH/img.height, 1);
@@ -1171,6 +1316,7 @@ function _roiContourFromSilhouette(rect, mask, maskW, maskH) {
 }
 
 function autoDetectContourInROI(rect) {
+  _pushUndo();
   const view = S.contourView;
   const url = S.imgs[view];
   if (!url) return;
@@ -1187,6 +1333,10 @@ function autoDetectContourInROI(rect) {
   // ── PATH B: no silhouette yet — fall back to Canny on original image ──
 
   const img = new Image();
+  img.onerror = () => {
+    document.getElementById('contour-info').textContent = '⚠ Could not load image';
+    cRoiRect = null; drawContour();
+  };
   img.onload = () => {
     const maxW=900, maxH=700;
     const r = Math.min(maxW/img.width, maxH/img.height, 1);
@@ -1318,10 +1468,12 @@ function toggleGuidedMode() {
 }
 function runGuidedContour() {
   if (!cGuidedSeeds.length) return alert('Add a seed point first (click on the object)');
+  _pushUndo();
   const url = S.imgs[S.contourView];
   if (!url) return;
   const tmpC = document.createElement('canvas'), tmpCtx = tmpC.getContext('2d');
   const img = new Image();
+  img.onerror = () => { alert('Could not load image'); };
   img.onload = () => {
     tmpC.width = cC.width; tmpC.height = cC.height;
     tmpCtx.drawImage(img, 0, 0, cC.width, cC.height);

@@ -105,6 +105,7 @@ async function computeDepthMap(view) {
   if (S.depthMaps?.[view]?._srcUrl === url) return;
 
   _setDepthStatus(null, 'loading', '⏳ Depth estimation…');
+  showProcessing('Running depth estimation…');
 
   try {
     const pipe = await _ensureDepthModel();
@@ -139,6 +140,7 @@ async function computeDepthMap(view) {
     S.depthMaps[view] = { data: norm, W: width, H: height, _srcUrl: url };
 
     _setDepthStatus(null, 'done', `✓ Depth — ${view}`);
+    hideProcessing();
 
     // Show depth overlay in the Computed panel
     _showDepthPreview(view);
@@ -149,45 +151,11 @@ async function computeDepthMap(view) {
   } catch (err) {
     console.error('[depth]', err);
     _setDepthStatus(null, 'error', `⚠ Depth: ${err.message}`);
+    hideProcessing();
   }
 }
 
-// ── Render depth map onto the seg-computed canvas ────────────────────────────
-function _showDepthPreview(view) {
-  if (view !== S.segView) return;
-  const segComp = document.getElementById('seg-computed');
-  if (!segComp) return;
-  const dm = S.depthMaps?.[view];
-  if (!dm) return;
-
-  segComp.width  = dm.W;
-  segComp.height = dm.H;
-  const ctx = segComp.getContext('2d');
-  const img = ctx.createImageData(dm.W, dm.H);
-
-  // Colorize: near=teal, far=dark. Use HSL-ish mapping.
-  for (let i = 0; i < dm.W * dm.H; i++) {
-    const d = dm.data[i]; // 0=far, 1=close
-    // teal (#0D9488) for close, dark-slate for far
-    img.data[i*4]   = Math.round(13  + (200 - 13)  * (1-d));  // R: 13→200
-    img.data[i*4+1] = Math.round(148 + (220 - 148) * (1-d));  // G: 148→220
-    img.data[i*4+2] = Math.round(136 + (240 - 136) * (1-d));  // B: 136→240
-    img.data[i*4+3] = 255;
-  }
-  ctx.putImageData(img, 0, 0);
-
-  // Update label
-  const lbl = document.getElementById('seg-computed-label');
-  if (lbl) lbl.textContent = 'Depth map (teal=close)';
-
-  // Auto-restore to Computed silhouette after 3 seconds
-  setTimeout(() => {
-    if (S.segMasks?.[view]) {
-      if (lbl) lbl.textContent = 'Computed';
-      _improveSegFromISO(view);
-    }
-  }, 3000);
-}
+function _showDepthPreview(_view) { /* depth preview removed — seg-computed canvas no longer exists */ }
 
 // ── Status helper ─────────────────────────────────────────────────────────────
 function _setDepthStatus(el, type, msg) {
@@ -201,18 +169,75 @@ function _setDepthStatus(el, type, msg) {
 // ── Exported helpers (used by other modules) ──────────────────────────────────
 
 // Returns a binary Uint8ClampedArray at targetW×targetH:
-// 255 = sure-background (very far from camera, depth < bgThresh).
-// Used in _improveSegFromISO as Source E to remove definite background pixels.
+// 255 = sure-background pixel.
+//
+// Strategy: build a depth histogram, find the foreground peak (tallest bin in
+// the top-50% depth range = closest objects), then mark pixels that are more
+// than `margin` below that peak as sure-background.
+// Falls back to a fixed threshold if the histogram has no clear peak.
 function depthSureBackground(view, targetW, targetH, bgThresh = 0.2) {
   const dm = S.depthMaps?.[view];
   if (!dm) return null;
+
+  // Build 64-bin histogram of depth values
+  const BINS = 64;
+  const hist = new Int32Array(BINS);
+  for (let i = 0; i < dm.data.length; i++)
+    hist[Math.min(BINS - 1, Math.floor(dm.data[i] * BINS))]++;
+
+  // Find tallest bin in top half (depth > 0.5 = close objects = foreground)
+  let peakBin = -1, peakVal = 0;
+  for (let b = Math.floor(BINS * 0.5); b < BINS; b++) {
+    if (hist[b] > peakVal) { peakVal = hist[b]; peakBin = b; }
+  }
+
+  // Separator: midpoint between peak and zero, but at least bgThresh
+  let cutoff = bgThresh;
+  if (peakBin > 0 && peakVal > dm.data.length * 0.02) {
+    // peak covers ≥2% of pixels — use it. Cutoff = half of peak depth.
+    cutoff = Math.max(bgThresh, (peakBin / BINS) * 0.5);
+  }
+
   const out = new Uint8ClampedArray(targetW * targetH);
   for (let y = 0; y < targetH; y++) {
     for (let x = 0; x < targetW; x++) {
       const sx = Math.round(x * dm.W / targetW);
       const sy = Math.round(y * dm.H / targetH);
       const d  = dm.data[Math.min(sy, dm.H-1) * dm.W + Math.min(sx, dm.W-1)];
-      if (d < bgThresh) out[y * targetW + x] = 255;
+      if (d < cutoff) out[y * targetW + x] = 255;
+    }
+  }
+  return out;
+}
+
+// Returns binary mask where pixels are sure-foreground (close to camera).
+// Uses the same histogram peak as depthSureBackground but inverts the logic.
+// Pixels within 0.20 depth-units of the foreground peak are marked 255.
+function depthSureForeground(view, targetW, targetH) {
+  const dm = S.depthMaps?.[view];
+  if (!dm) return null;
+
+  const BINS = 64;
+  const hist = new Int32Array(BINS);
+  for (let i = 0; i < dm.data.length; i++)
+    hist[Math.min(BINS-1, Math.floor(dm.data[i] * BINS))]++;
+
+  let peakBin = -1, peakVal = 0;
+  for (let b = Math.floor(BINS * 0.5); b < BINS; b++) {
+    if (hist[b] > peakVal) { peakVal = hist[b]; peakBin = b; }
+  }
+  if (peakBin < 0 || peakVal < dm.data.length * 0.02) return null;
+
+  const peakDepth = (peakBin + 0.5) / BINS;
+  const fgThresh  = peakDepth - 0.20; // within 0.20 depth-units of foreground peak
+
+  const out = new Uint8ClampedArray(targetW * targetH);
+  for (let y = 0; y < targetH; y++) {
+    for (let x = 0; x < targetW; x++) {
+      const sx = Math.round(x * dm.W / targetW);
+      const sy = Math.round(y * dm.H / targetH);
+      const d  = dm.data[Math.min(sy, dm.H-1) * dm.W + Math.min(sx, dm.W-1)];
+      if (d >= fgThresh) out[y * targetW + x] = 255;
     }
   }
   return out;

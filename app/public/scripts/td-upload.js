@@ -13,6 +13,14 @@ function handleUpload(e, v) {
 function setImg(v, url, isRestore = false, skipPersistImg = false) {
   S.imgs[v] = url;
   const img = new Image();
+  img.onerror = () => {
+    // Image URL is corrupt or inaccessible — treat as if no image was loaded
+    S.imgs[v] = null;
+    document.getElementById(`preview-${v}`).src = '';
+    document.getElementById(`preview-${v}`).style.display = 'none';
+    document.getElementById(`placeholder-${v}`).style.display = 'flex';
+    checkUploads();
+  };
   img.onload = () => {
     document.getElementById(`preview-${v}`).src = url;
     document.getElementById(`preview-${v}`).style.display = 'block';
@@ -62,6 +70,7 @@ function deleteImg(v) {
 function _ensureSegMask(view, callback) {
   if (S.segMasks?.[view] || !S.imgs[view]) { callback(); return; }
   const img = new Image();
+  img.onerror = () => callback();
   img.onload = () => {
     const maxW=900, maxH=700;
     const r = Math.min(maxW/img.width, maxH/img.height, 1);
@@ -134,10 +143,34 @@ function _updateSegMeta(view, mask, W, H, origW, origH) {
       if (y < mnY) mnY = y; if (y > mxY) mxY = y;
     }
   }
-  S.segMeta[view] = (mxX > mnX && mxY > mnY)
-    ? { bbox: { minX: mnX, minY: mnY, maxX: mxX, maxY: mxY }, area, W, H,
-        origW: origW ?? W, origH: origH ?? H }
-    : null;
+  if (mxX <= mnX || mxY <= mnY) { S.segMeta[view] = null; return; }
+  const holeCount = _detectMaskHoles(mask, W, H);
+  S.segMeta[view] = {
+    bbox: { minX: mnX, minY: mnY, maxX: mxX, maxY: mxY },
+    area, W, H,
+    origW: origW ?? W, origH: origH ?? H,
+    holeCount
+  };
+}
+
+// BFS from border: count background pixels not reachable from outside = interior holes
+function _detectMaskHoles(mask, W, H) {
+  const reachable = new Uint8Array(W * H);
+  const q = [];
+  const enqueue = (i) => { if (!mask[i] && !reachable[i]) { reachable[i] = 1; q.push(i); } };
+  for (let x = 0; x < W; x++) { enqueue(x); enqueue((H - 1) * W + x); }
+  for (let y = 1; y < H - 1; y++) { enqueue(y * W); enqueue(y * W + W - 1); }
+  let qi = 0;
+  while (qi < q.length) {
+    const idx = q[qi++], x = idx % W, y = (idx / W) | 0;
+    if (x > 0) enqueue(idx - 1);
+    if (x < W - 1) enqueue(idx + 1);
+    if (y > 0) enqueue(idx - W);
+    if (y < H - 1) enqueue(idx + W);
+  }
+  let holePx = 0;
+  for (let i = 0; i < W * H; i++) if (!mask[i] && !reachable[i]) holePx++;
+  return holePx > Math.max(10, W * H * 0.001) ? 1 : 0;
 }
 
 function checkUploads() {
@@ -186,11 +219,20 @@ function _quickAnalysis() {
   // ISO analysis runs in parallel with view analyses
   runIsoFullPipeline(() => finish());
 
+  // Start depth inference for all views immediately in background.
+  // By the time the user reaches Background Separation (step 2), depth maps
+  // will already be ready and _improveSegFromISO will use them automatically.
+  if (typeof preloadDepthModel === 'function') preloadDepthModel();
+  if (typeof computeDepthMap === 'function') {
+    views.forEach(v => { if (S.imgs[v]) computeDepthMap(v); });
+  }
+
   views.forEach(v => {
     _ensureSegMask(v, () => {
       const url = S.imgs[v];
       if (!url) { finish(); return; }
       const img = new Image();
+      img.onerror = () => finish();
       img.onload = () => {
         const SZ = 600;
         const sc = Math.min(1, SZ / Math.max(img.width, img.height));

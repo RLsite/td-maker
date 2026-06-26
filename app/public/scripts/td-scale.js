@@ -103,6 +103,7 @@ function autoDetectScale() {
   setTimeout(() => {
     const tmpC = document.createElement('canvas');
     const img = new Image();
+    img.onerror = () => { if (infoEl) infoEl.textContent = '⚠ Could not load image'; };
     img.onload = () => {
       const SZ = 800, sc = Math.min(1, SZ/Math.max(img.width, img.height));
       tmpC.width = Math.round(img.width*sc); tmpC.height = Math.round(img.height*sc);
@@ -172,6 +173,81 @@ function applyRulerScale(periodPx, mm) {
   if (infoEl) infoEl.textContent = `✓ ${pxPerMM.toFixed(2)} px/mm set (${Math.round(periodPx)}px = ${mm}mm)`;
   const dlg = document.getElementById('ruler-dlg');
   if (dlg) dlg.remove();
+
+  // Background perspective check (Electron only)
+  if (window.tdCompute?.runRectify && S.imgs[view]) {
+    _checkPerspective(view);
+  }
+}
+
+async function _checkPerspective(view) {
+  const infoEl = document.getElementById('ruler-detect-info');
+  try {
+    const imgB64 = S.imgs[view].split(',')[1] ?? S.imgs[view];
+    const result = await window.tdCompute.runRectify({
+      image: imgB64,
+      ruler_orientation: 'auto',
+      apply: false,  // analyse only — don't modify the image yet
+    });
+    if (result?.error) return;
+
+    const deg    = result.rotation_deg ?? 0;
+    const pScore = result.perspective_score ?? 0;
+    const absDeg = Math.abs(deg);
+
+    // Store on S for reference
+    S.perspectiveCheck = S.perspectiveCheck ?? {};
+    S.perspectiveCheck[view] = result;
+
+    // Build status message
+    let msg = `✓ ${(S.scale?.[view] ?? 0).toFixed(2)} px/mm`;
+    if (absDeg > 0.5) {
+      msg += ` · 📐 Tilt: ${deg.toFixed(1)}°`;
+      if (absDeg > 1) {
+        msg += ` — <button onclick="_applyRectify('${view}')"
+          style="background:var(--teal);color:white;border:none;border-radius:5px;
+                 padding:2px 10px;font-size:11px;cursor:pointer;margin-left:4px;">
+          Fix rotation</button>`;
+      }
+    }
+    if (pScore > 0.4) {
+      msg += ` · ⚠ Perspective distortion detected (score ${pScore.toFixed(2)})`;
+    }
+    if (infoEl) infoEl.innerHTML = msg;
+  } catch (_) {}
+}
+
+async function _applyRectify(view) {
+  if (!window.tdCompute?.runRectify || !S.imgs[view]) return;
+  const infoEl = document.getElementById('ruler-detect-info');
+  if (infoEl) infoEl.innerHTML = '⏳ Correcting rotation…';
+  try {
+    const imgB64 = S.imgs[view].split(',')[1] ?? S.imgs[view];
+    const result = await window.tdCompute.runRectify({
+      image: imgB64,
+      ruler_orientation: 'auto',
+      apply: true,
+    });
+    if (result?.error || !result?.image_b64) {
+      if (infoEl) infoEl.textContent = '⚠ Correction failed';
+      return;
+    }
+    // Replace the stored image with the corrected version
+    S.imgs[view] = 'data:image/png;base64,' + result.image_b64;
+    // The scale (px/mm) is still valid — only orientation changed, not scale
+    // But original image size changed → update polyCanvasSize if set
+    const [nW, nH] = result.new_size;
+    if (S.polyCanvasSize?.[view]) {
+      S.polyCanvasSize[view] = { w: nW, h: nH };
+    }
+    // Reload the scale canvas image
+    initScale();
+    if (infoEl) infoEl.textContent =
+      `✓ Rotation corrected (${result.rotation_deg?.toFixed(1)}° fixed). Re-run segmentation for best results.`;
+    persistState();
+  } catch (e) {
+    if (infoEl) infoEl.textContent = '⚠ Correction error: ' + e.message;
+  }
 }
 // measurements[view] = [{px, mm, ppm}, ...]
 const measurements = { front: [], side: [], top: [] };
@@ -193,6 +269,7 @@ function initScale() {
   if (!url) { scCtx.clearRect(0,0,scC.width,scC.height); return; }
   const img = new Image();
   scImg = img;
+  img.onerror = () => { if (img === scImg) scCtx.clearRect(0, 0, scC.width, scC.height); };
   img.onload = () => {
     if (img !== scImg) return;   // stale — a newer load is in progress
     const par = scC.parentElement;
@@ -559,13 +636,19 @@ function updateScaleAvg() {
   const avgEl = document.getElementById('scale-avg');
   if (avgEl) { avgEl.textContent = avg ? avg.toFixed(3) : '—'; avgEl.style.color = avg ? '#14B8A6' : 'var(--subtle)'; }
 
-  // Update 3-view summary
+  // Update 3-view summary AND sync S.scale for all views.
+  // S.scale is the authoritative px/mm store used by buildObjectModel and review.
+  // Without updating all views here, session-restore (which calls updateScaleAvg once
+  // with S.scaleView='front') would leave S.scale.side and S.scale.top as null even
+  // though measurements for those views were successfully restored.
   ['front','side','top'].forEach(vv => {
     const el = document.getElementById(`scale-${vv}`);
-    if (!el) return;
     const ms = measurements[vv];
+    const a = ms.length ? ms.reduce((s, m) => s + m.ppm, 0) / ms.length : null;
+    // Always keep S.scale in sync with measurements for every view
+    if (a !== null) S.scale[vv] = a;
+    if (!el) return;
     if (!ms.length) { el.textContent = '—'; el.style.color = 'var(--subtle)'; return; }
-    const a = ms.reduce((s, m) => s + m.ppm, 0) / ms.length;
     el.textContent = a.toFixed(2); el.style.color = '#14B8A6';
   });
 
